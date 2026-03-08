@@ -19,7 +19,6 @@ export default function Home() {
         <h1 className="text-2xl font-black text-red-600 italic cursor-pointer" onClick={() => navigate('/')}>LifeLink</h1>
         <div className="flex items-center gap-8 font-bold text-slate-600">
           <button onClick={() => navigate('/register')} className="hover:text-red-600 transition-all">Become a Donor</button>
-          <button onClick={() => navigate('/admin')} className="hover:text-red-600 transition-all">Admin</button>
           <button onClick={() => navigate('/profile')}>My Profile</button>
           <button 
             onClick={() => setShowEmergencyModal(true)}
