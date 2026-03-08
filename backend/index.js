@@ -4,6 +4,7 @@ import { Pool } from 'pg';
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import usersRouter from './routes/users.js';
 
 // Loading .env variables
 dotenv.config();
@@ -49,23 +50,32 @@ app.get('/', (req, res) => {
 
 // Registration route
 app.post('/api/register', async (req, res) => {
-    const { email, password, role } = req.body;
+    const { email, password, role, name, phone, address, city, blood_type, age } = req.body;
 
     if (!email || !password || !role) {
         return res.status(400).json({ error: 'Missing fields: email, password, role' });
+    }
+
+    // Validate blood type for donors
+    const validBloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+    if (role === 'user' && blood_type && !validBloodTypes.includes(blood_type)) {
+        return res.status(400).json({ error: 'Invalid blood type' });
     }
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const result = await pool.query(
-            'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id',
-            [email, hashedPassword, role]
+            'INSERT INTO users (email, password, role, name, phone, address, city, blood_type, age) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, email, role, name',
+            [email, hashedPassword, role, name || null, phone || null, address || null, city || null, blood_type || null, age || null]
         );
 
         res.status(201).json({
-            message: 'Registered',
-            userId: result.rows[0].id
+            message: 'Registered successfully',
+            userId: result.rows[0].id,
+            email: result.rows[0].email,
+            role: result.rows[0].role,
+            name: result.rows[0].name
         });
     } catch (err) {
         if (err.code === '23505') {
@@ -131,7 +141,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/profile', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, email, role FROM users WHERE id = $1',
+            'SELECT id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, is_active, created_at FROM users WHERE id = $1',
             [req.userId]
         );
 
@@ -150,6 +160,9 @@ app.get('/api/profile', verifyToken, async (req, res) => {
 app.post('/api/logout', verifyToken, (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
+
+// User profile management routes
+app.use('/api', usersRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
