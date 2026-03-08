@@ -21,7 +21,7 @@ export default function Home() {
         <h1 className="text-2xl font-black text-red-600 italic cursor-pointer" onClick={() => navigate('/')}>LifeLink</h1>
         <div className="flex items-center gap-4 font-bold text-slate-600">
           <button 
-            onClick={() => navigate('/register')} 
+            onClick={() => navigate('/register?type=donor')} 
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-all border border-green-200"
           >
             <Heart size={18}/> Become a Donor
@@ -97,14 +97,29 @@ export default function Home() {
           <div className="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl animate-in zoom-in duration-300 relative">
             <button onClick={() => setShowEmergencyModal(false)} className="absolute right-8 top-8 text-slate-400 hover:text-slate-600"><X/></button>
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6"><AlertTriangle size={32}/></div>
-            <h3 className="text-3xl font-black text-slate-900 mb-2">Broadcast Alert</h3>
-            <p className="text-slate-500 font-medium mb-8">Notify all matching donors within your area immediately.</p>
-            <button 
-              onClick={() => { alert("Broadcast Sent!"); setShowEmergencyModal(false); }}
-              className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
-            >
-              <Send size={20}/> Send Alert Now
-            </button>
+            <h3 className="text-3xl font-black text-slate-900 mb-2">
+              {isAuthenticated ? "Broadcast Alert" : "Request Help"}
+            </h3>
+            <p className="text-slate-500 font-medium mb-8">
+              {isAuthenticated 
+                ? "Notify all matching donors within your area immediately." 
+                : "Create an account to submit your emergency request and notify nearby donors instantly."}
+            </p>
+            {isAuthenticated ? (
+              <button 
+                onClick={() => { alert("Broadcast Sent!"); setShowEmergencyModal(false); }}
+                className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
+              >
+                <Send size={20}/> Send Alert Now
+              </button>
+            ) : (
+              <button 
+                onClick={() => navigate('/register?type=receiver')}
+                className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
+              >
+                <HandHeart size={20}/> Register & Request Help
+              </button>
+            )}
           </div>
         </div>
       )}
