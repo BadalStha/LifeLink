@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, MapPin, ChevronDown, AlertTriangle, Send, X } from 'lucide-react';
-import DonorMap from '../Components/DonorMap'; 
+import DonorMap from '../Components/DonorMap';
+import { useAuth } from '../context/AuthContext';
 
 export default function Home() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [searchType, setSearchType] = useState('');
   const [searchLocation, setSearchLocation] = useState('');
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
@@ -19,7 +21,11 @@ export default function Home() {
         <h1 className="text-2xl font-black text-red-600 italic cursor-pointer" onClick={() => navigate('/')}>LifeLink</h1>
         <div className="flex items-center gap-8 font-bold text-slate-600">
           <button onClick={() => navigate('/register')} className="hover:text-red-600 transition-all">Become a Donor</button>
-          <button onClick={() => navigate('/profile')}>My Profile</button>
+          {isAuthenticated ? (
+            <button onClick={() => navigate('/profile')} className="hover:text-red-600 transition-all">My Profile</button>
+          ) : (
+            <button onClick={() => navigate('/login')} className="hover:text-red-600 transition-all">Login</button>
+          )}
           <button 
             onClick={() => setShowEmergencyModal(true)}
             className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-red-700 transition-all animate-pulse flex items-center gap-2"
