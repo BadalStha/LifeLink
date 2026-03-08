@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, MapPin, ChevronDown, AlertTriangle, Send, X } from 'lucide-react';
+import { Search, MapPin, ChevronDown, AlertTriangle, Send, X, Heart, HandHeart } from 'lucide-react';
 import DonorMap from '../Components/DonorMap';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,19 +19,24 @@ export default function Home() {
       {/* --- NAVBAR --- */}
       <nav className="flex justify-between items-center px-10 py-6 bg-white sticky top-0 z-[1000] border-b border-slate-50">
         <h1 className="text-2xl font-black text-red-600 italic cursor-pointer" onClick={() => navigate('/')}>LifeLink</h1>
-        <div className="flex items-center gap-8 font-bold text-slate-600">
-          <button onClick={() => navigate('/register')} className="hover:text-red-600 transition-all">Become a Donor</button>
+        <div className="flex items-center gap-4 font-bold text-slate-600">
+          <button 
+            onClick={() => navigate('/register')} 
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-all border border-green-200"
+          >
+            <Heart size={18}/> Become a Donor
+          </button>
+          <button 
+            onClick={() => setShowEmergencyModal(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-200"
+          >
+            <HandHeart size={18}/> Request Help
+          </button>
           {isAuthenticated ? (
             <button onClick={() => navigate('/profile')} className="hover:text-red-600 transition-all">My Profile</button>
           ) : (
             <button onClick={() => navigate('/login')} className="hover:text-red-600 transition-all">Login</button>
           )}
-          <button 
-            onClick={() => setShowEmergencyModal(true)}
-            className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-red-700 transition-all animate-pulse flex items-center gap-2"
-          >
-            <AlertTriangle size={18}/> Emergency Request
-          </button>
         </div>
       </nav>
 
