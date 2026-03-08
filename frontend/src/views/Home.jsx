@@ -114,7 +114,7 @@ export default function Home() {
               </button>
             ) : (
               <button 
-                onClick={() => navigate('/register?type=receiver')}
+                onClick={() => navigate('/request-help')}
                 className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
               >
                 <HandHeart size={20}/> Register & Request Help
