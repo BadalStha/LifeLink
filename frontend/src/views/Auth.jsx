@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Phone, Lock, User, Github, Chrome, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Auth() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ email: '', password: '', name: '', phone: '' });
@@ -12,7 +14,14 @@ export default function Auth() {
     e.preventDefault();
     // Simulate successful Auth
     console.log("Auth Data:", formData);
-    navigate('/dashboard');
+    // Set user as logged in
+    const userData = { 
+      name: formData.name || 'User', 
+      email: formData.email 
+    };
+    const token = 'fake-jwt-token-' + Date.now();
+    login(userData, token);
+    navigate('/');
   };
 
   return (

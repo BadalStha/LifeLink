@@ -1,9 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, MapPin, ArrowLeft, Heart } from 'lucide-react';
+import { History, Settings, MapPin, ArrowLeft, Heart, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const history = [
     { id: 1, hospital: "Dharan BPKIHS", date: "Feb 10, 2026", type: "O+ Blood" },
@@ -14,9 +21,17 @@ export default function Profile() {
     <div className="min-h-screen bg-slate-50 font-sans p-6">
       <div className="max-w-3xl mx-auto">
         {/* Back Navigation */}
-        <button onClick={() => navigate('/')} className="mb-6 flex items-center gap-2 text-slate-500 font-bold hover:text-red-600 transition-all">
-          <ArrowLeft size={20}/> Back to Home
-        </button>
+        <div className="flex justify-between items-center mb-6">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-500 font-bold hover:text-red-600 transition-all">
+            <ArrowLeft size={20}/> Back to Home
+          </button>
+          <button 
+            onClick={handleLogout} 
+            className="flex items-center gap-2 bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 font-bold px-4 py-2 rounded-full transition-all"
+          >
+            <LogOut size={18}/> Logout
+          </button>
+        </div>
 
         {/* Profile Header (The missing details) */}
         <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row items-center gap-6">

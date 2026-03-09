@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Heart, User, Mail, Phone, MapPin, Shield, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { HandHeart, User, Mail, Phone, MapPin, AlertTriangle, CheckCircle, Droplet, Activity } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 // Nepal address data
@@ -14,13 +14,12 @@ const provinceData = {
   'Sudurpashchim': ['Achham', 'Baitadi', 'Bajhang', 'Bajura', 'Dadeldhura', 'Darchula', 'Doti', 'Kailali', 'Kanchanpur']
 };
 
-export default function Register() {
+export default function RequestHelp() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
   
   const [formData, setFormData] = useState({
-    // About You
+    // Personal Information
     firstName: '',
     middleName: '',
     lastName: '',
@@ -40,6 +39,14 @@ export default function Register() {
     municipality: '',
     ward: '',
     
+    // Medical Need
+    requestType: 'blood', // 'blood' or 'organ'
+    bloodGroup: '',
+    organType: '',
+    urgencyLevel: '',
+    hospitalName: '',
+    additionalInfo: '',
+    
     // Confirmation
     agreedToPrivacy: false
   });
@@ -48,13 +55,13 @@ export default function Register() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Donor Registration Data:', formData);
+    console.log('Receiver Registration Data:', formData);
     
     // Simulate successful registration and login
     const userData = { 
       name: `${formData.firstName} ${formData.lastName}`, 
       email: formData.email,
-      type: 'donor'
+      type: 'receiver'
     };
     const token = 'fake-jwt-token-' + Date.now();
     login(userData, token);
@@ -95,18 +102,18 @@ export default function Register() {
 
         <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
           <div className="flex items-center gap-3 mb-8">
-            <Heart className="text-red-600" size={32} />
+            <HandHeart className="text-red-600" size={32} />
             <div>
-              <h2 className="text-4xl font-black text-slate-900">Become a Life Saver</h2>
-              <p className="text-slate-500 font-medium">Register as a donor to help save lives</p>
+              <h2 className="text-4xl font-black text-slate-900">Request Medical Help</h2>
+              <p className="text-slate-500 font-medium">Register your urgent need for blood or organ</p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             
-            {/* ===== ABOUT YOU SECTION ===== */}
+            {/* ===== PATIENT INFORMATION SECTION ===== */}
             <div className="border-l-4 border-red-600 pl-6">
-              <h3 className="text-2xl font-black text-slate-900 mb-6">About You</h3>
+              <h3 className="text-2xl font-black text-slate-900 mb-6">Patient Information</h3>
               
               {/* Name Fields */}
               <div className="grid grid-cols-3 gap-4 mb-6">
@@ -117,7 +124,7 @@ export default function Register() {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleChange}
-                    placeholder="Sita"
+                    placeholder="Ramesh"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />
@@ -129,7 +136,7 @@ export default function Register() {
                     name="middleName"
                     value={formData.middleName}
                     onChange={handleChange}
-                    placeholder="Kumari"
+                    placeholder="Bahadur"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                   />
                 </div>
@@ -140,7 +147,7 @@ export default function Register() {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleChange}
-                    placeholder="Shrestha"
+                    placeholder="Gurung"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
                   />
@@ -219,9 +226,9 @@ export default function Register() {
             </div>
 
             {/* ===== CONTACT DETAILS SECTION ===== */}
-            <div className="border-l-4 border-green-600 pl-6">
+            <div className="border-l-4 border-orange-600 pl-6">
               <h3 className="text-2xl font-black text-slate-900 mb-2">Contact Details</h3>
-              <p className="text-slate-500 text-sm mb-6 font-medium">We need your contact information to reach you when there's an urgent need. Your information will be kept confidential and used only for donation-related communications.</p>
+              <p className="text-slate-500 text-sm mb-6 font-medium">We need your contact information to coordinate with donors and keep you updated about potential matches.</p>
               
               <div className="space-y-4">
                 {/* Email */}
@@ -234,8 +241,8 @@ export default function Register() {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      placeholder="sita.shrestha@example.com"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="ramesh.gurung@example.com"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -252,7 +259,7 @@ export default function Register() {
                       value={formData.telephone}
                       onChange={handleChange}
                       placeholder="+977-01-XXXXXXX"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -268,7 +275,7 @@ export default function Register() {
                       value={formData.mobile}
                       onChange={handleChange}
                       placeholder="+977-98XXXXXXXX"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -348,8 +355,133 @@ export default function Register() {
               </div>
             </div>
 
-            {/* ===== CONFIRMATION SECTION ===== */}
+            {/* ===== MEDICAL NEED SECTION ===== */}
             <div className="border-l-4 border-purple-600 pl-6 bg-purple-50 p-6 rounded-2xl">
+              <h3 className="text-2xl font-black text-slate-900 mb-6">Medical Requirement</h3>
+              
+              {/* Request Type Toggle */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-3">What do you need? *</label>
+                <div className="grid grid-cols-2 gap-4 p-2 bg-white rounded-2xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, requestType: 'blood', organType: ''})}
+                    className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                      formData.requestType === 'blood'
+                        ? 'bg-red-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Droplet size={20} /> Blood Donation
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({...formData, requestType: 'organ', bloodGroup: ''})}
+                    className={`p-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${
+                      formData.requestType === 'organ'
+                        ? 'bg-purple-600 text-white shadow-lg'
+                        : 'text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Activity size={20} /> Organ Transplant
+                  </button>
+                </div>
+              </div>
+
+              {/* Blood Group - Show if blood is selected */}
+              {formData.requestType === 'blood' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Blood Group Required *</label>
+                  <select
+                    name="bloodGroup"
+                    value={formData.bloodGroup}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Blood Group</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Organ Type - Show if organ is selected */}
+              {formData.requestType === 'organ' && (
+                <div className="mb-6">
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Organ Required *</label>
+                  <select
+                    name="organType"
+                    value={formData.organType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Select Organ Type</option>
+                    <option value="Kidney">Kidney</option>
+                    <option value="Liver">Liver</option>
+                    <option value="Cornea">Cornea</option>
+                    <option value="Heart">Heart</option>
+                    <option value="Lung">Lung</option>
+                    <option value="Pancreas">Pancreas</option>
+                    <option value="Bone Marrow">Bone Marrow</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Urgency Level */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Urgency Level *</label>
+                <select
+                  name="urgencyLevel"
+                  value={formData.urgencyLevel}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select Urgency</option>
+                  <option value="critical">🔴 Critical - Immediate Need (Within 24 hours)</option>
+                  <option value="urgent">🟠 Urgent - Within a Week</option>
+                  <option value="moderate">🟡 Moderate - Within a Month</option>
+                </select>
+              </div>
+
+              {/* Hospital Name */}
+              <div className="mb-6">
+                <label className="block text-sm font-bold text-slate-700 mb-2">Hospital/Medical Center *</label>
+                <input
+                  type="text"
+                  name="hospitalName"
+                  value={formData.hospitalName}
+                  onChange={handleChange}
+                  placeholder="e.g., Tribhuvan University Teaching Hospital"
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              {/* Additional Information */}
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Additional Medical Information</label>
+                <textarea
+                  name="additionalInfo"
+                  value={formData.additionalInfo}
+                  onChange={handleChange}
+                  placeholder="Please provide any additional medical details, doctor's name, or special requirements..."
+                  rows="4"
+                  className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              </div>
+            </div>
+
+            {/* ===== CONFIRMATION SECTION ===== */}
+            <div className="border-l-4 border-slate-600 pl-6 bg-slate-50 p-6 rounded-2xl">
               <label className="flex items-start gap-4 cursor-pointer">
                 <input
                   type="checkbox"
@@ -370,7 +502,7 @@ export default function Register() {
                     >
                       Privacy Statement
                     </a>
-                    {' '}and understand that my personal information will be used only for blood donation purposes. I confirm that all information provided is accurate and truthful.
+                    {' '}and confirm that the information provided is accurate. I understand that this information will be shared with potential donors to facilitate the medical assistance I require.
                   </p>
                 </div>
               </label>
@@ -386,7 +518,7 @@ export default function Register() {
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <CheckCircle size={20} /> Register as Donor
+              <AlertTriangle size={20} /> Submit Request for Help
             </button>
           </form>
 
