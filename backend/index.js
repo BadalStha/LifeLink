@@ -5,6 +5,9 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import usersRouter from './routes/users.js';
+import requestsRouter from './routes/requests.js';
+import dashboardRouter from './routes/dashboard.js';
+import alertsRouter from './routes/alerts.js';
 
 // Loading .env variables
 dotenv.config();
@@ -173,8 +176,11 @@ app.post('/api/logout', verifyToken, (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
 
-// User profile management routes
+// Mount all route modules
 app.use('/api', usersRouter);
+app.use('/api', requestsRouter);
+app.use('/api/dashboard', dashboardRouter);
+app.use('/api', alertsRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
