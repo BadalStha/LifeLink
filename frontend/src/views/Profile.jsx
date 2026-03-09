@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, MapPin, ArrowLeft, Heart, LogOut, Loader2 } from 'lucide-react';
+import { History, Settings, MapPin, ArrowLeft, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { authAPI, usersAPI } from '../services/api';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { logout, user: authUser } = useAuth();
+  const { logout } = useAuth();
   const [profileData, setProfileData] = useState(null);
+  const [userStats, setUserStats] = useState(null);
+  const [donationHistory, setDonationHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchAllData = async () => {
       const token = localStorage.getItem('authToken');
       if (!token) {
         navigate('/login');
@@ -21,31 +22,31 @@ export default function Profile() {
       }
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 401 || response.status === 403) {
-            logout();
-            navigate('/login');
-            return;
-          }
-          throw new Error('Failed to load profile');
-        }
-
-        const data = await response.json();
+        const data = await authAPI.getProfile();
         setProfileData(data.user);
+
+        // Fetch user stats and donation history in parallel
+        const [statsData, historyData] = await Promise.all([
+          usersAPI.getStats().catch(() => ({ stats: { lives_saved: 0, status: 'New Member' } })),
+          usersAPI.getDonationHistory().catch(() => ({ history: [] }))
+        ]);
+
+        setUserStats(statsData.stats);
+        setDonationHistory(historyData.history);
       } catch (err) {
-        setError(err.message || 'Unable to load profile');
+        const message = err.message || 'Unable to load profile';
+        if (/401|403|token|expired|invalid/i.test(message)) {
+          logout();
+          navigate('/login');
+          return;
+        }
+        setError(message);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchProfile();
+    fetchAllData();
   }, [navigate, logout]);
 
   const handleLogout = () => {
@@ -53,10 +54,11 @@ export default function Profile() {
     navigate('/');
   };
 
-  const history = [
-    { id: 1, hospital: "Dharan BPKIHS", date: "Feb 10, 2026", type: "O+ Blood" },
-    { id: 2, hospital: "Biratnagar Red Cross", date: "Nov 15, 2025", type: "O+ Blood" }
-  ];
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
 
   if (isLoading) {
     return (
@@ -148,31 +150,38 @@ export default function Profile() {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white p-6 rounded-[30px] border border-slate-100 text-center">
             <p className="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Lives Saved</p>
-            <p className="text-2xl font-black text-red-600">02</p>
+            <p className="text-2xl font-black text-red-600">{userStats?.lives_saved?.toString().padStart(2, '0') || '00'}</p>
           </div>
           <div className="bg-white p-6 rounded-[30px] border border-slate-100 text-center">
             <p className="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Status</p>
-            <p className="text-2xl font-black text-green-600">Active Hero</p>
+            <p className="text-2xl font-black text-green-600">{userStats?.status || 'New Member'}</p>
           </div>
         </div>
 
-        {/* Donation History (Keep this part) */}
+        {/* Donation History */}
         <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100">
           <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
             <History className="text-red-600"/> Donation History
           </h3>
           <div className="space-y-4">
-            {history.map(item => (
-              <div key={item.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center hover:bg-white transition-all">
-                <div>
-                  <p className="font-black text-slate-900">{item.hospital}</p>
-                  <p className="text-xs font-bold text-slate-400">{item.date}</p>
-                </div>
-                <span className="bg-white text-red-600 border border-red-100 px-4 py-1 rounded-full text-xs font-black uppercase">
-                  {item.type}
-                </span>
+            {donationHistory.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="font-bold">No donation history yet</p>
+                <p className="text-sm mt-1">Your donations will appear here once recorded</p>
               </div>
-            ))}
+            ) : (
+              donationHistory.map(item => (
+                <div key={item.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center hover:bg-white transition-all">
+                  <div>
+                    <p className="font-black text-slate-900">{item.hospital_name || 'Hospital'}</p>
+                    <p className="text-xs font-bold text-slate-400">{formatDate(item.donation_date)}</p>
+                  </div>
+                  <span className="bg-white text-red-600 border border-red-100 px-4 py-1 rounded-full text-xs font-black uppercase">
+                    {item.donation_type === 'Blood' ? (item.blood_type || 'Blood') : (item.organ_type || 'Organ')}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

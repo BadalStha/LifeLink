@@ -154,6 +154,16 @@ export const usersAPI = {
     const response = await fetch(`${API_BASE_URL}/api/users/${userId}`);
     return handleResponse(response);
   },
+
+  getStats: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/user/stats`);
+    return handleResponse(response);
+  },
+
+  getDonationHistory: async (limit = 10) => {
+    const response = await authFetch(`${API_BASE_URL}/api/user/donation-history?limit=${limit}`);
+    return handleResponse(response);
+  },
 };
 
 export default {
