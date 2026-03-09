@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Heart, User, Mail, Phone, MapPin, Shield, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, Mail, Phone, CheckCircle, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 // Nepal address data
 const provinceData = {
@@ -16,7 +18,6 @@ const provinceData = {
 
 export default function Register() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { login } = useAuth();
   
   const [formData, setFormData] = useState({
@@ -31,8 +32,11 @@ export default function Register() {
     
     // Contact Details
     email: '',
+    password: '',
+    confirmPassword: '',
     telephone: '',
     mobile: '',
+    bloodType: '',
     
     // Address
     province: '',
@@ -45,21 +49,101 @@ export default function Register() {
   });
 
   const [districts, setDistricts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const getErrorMessage = async (response) => {
+    try {
+      const errorData = await response.json();
+      return errorData.error || 'Registration failed';
+    } catch {
+      return 'Registration failed';
+    }
+  };
+
+  const calculateAge = (year, month, day) => {
+    const birthDate = new Date(Number(year), Number(month) - 1, Number(day));
+    if (Number.isNaN(birthDate.getTime())) {
+      return null;
+    }
+
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDifference = today.getMonth() - birthDate.getMonth();
+
+    if (monthDifference < 0 || (monthDifference === 0 && today.getDate() < birthDate.getDate())) {
+      age -= 1;
+    }
+
+    return age > 0 ? age : null;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Donor Registration Data:', formData);
-    
-    // Simulate successful registration and login
-    const userData = { 
-      name: `${formData.firstName} ${formData.lastName}`, 
-      email: formData.email,
-      type: 'donor'
-    };
-    const token = 'fake-jwt-token-' + Date.now();
-    login(userData, token);
-    
-    navigate('/profile');
+    setErrorMessage('');
+
+    if (formData.password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters.');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setErrorMessage('Password and confirm password do not match.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const fullName = [formData.firstName, formData.middleName, formData.lastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      const age = calculateAge(formData.dobYear, formData.dobMonth, formData.dobDay);
+      const address = `${formData.municipality}, Ward ${formData.ward}, ${formData.district}, ${formData.province}`;
+
+      const registerResponse = await fetch(`${API_BASE_URL}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          role: 'user',
+          name: fullName,
+          phone: formData.mobile || formData.telephone,
+          city: formData.district,
+          address,
+          age,
+          blood_type: formData.bloodType || null,
+        }),
+      });
+
+      if (!registerResponse.ok) {
+        throw new Error(await getErrorMessage(registerResponse));
+      }
+
+      const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (!loginResponse.ok) {
+        throw new Error('Account created, but login failed. Please use Login page.');
+      }
+
+      const loginData = await loginResponse.json();
+      login(loginData.user, loginData.token);
+      navigate('/profile');
+    } catch (error) {
+      setErrorMessage(error.message || 'Unable to complete registration right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -241,6 +325,42 @@ export default function Register() {
                   </div>
                 </div>
 
+                {/* Password */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      minLength={8}
+                      placeholder="Minimum 8 characters"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Confirm Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      minLength={8}
+                      placeholder="Re-enter password"
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      required
+                    />
+                  </div>
+                </div>
+
                 {/* Telephone */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Telephone Number</label>
@@ -272,6 +392,21 @@ export default function Register() {
                       required
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Blood Group</label>
+                  <select
+                    name="bloodType"
+                    value={formData.bloodType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    <option value="">Select blood type</option>
+                    {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -376,17 +511,21 @@ export default function Register() {
               </label>
             </div>
 
+            {errorMessage && (
+              <p className="text-sm font-semibold text-red-600 px-1">{errorMessage}</p>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!formData.agreedToPrivacy}
+              disabled={!formData.agreedToPrivacy || isSubmitting}
               className={`w-full py-4 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${
-                formData.agreedToPrivacy
+                formData.agreedToPrivacy && !isSubmitting
                   ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 cursor-pointer'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <CheckCircle size={20} /> Register as Donor
+              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : 'Register as Donor'}
             </button>
           </form>
 
