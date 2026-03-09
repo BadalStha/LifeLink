@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HandHeart, User, Mail, Phone, MapPin, AlertTriangle, CheckCircle, Droplet, Activity } from 'lucide-react';
+import { HandHeart, User, Mail, Phone, MapPin, AlertTriangle, CheckCircle, Droplet, Activity, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { requestsAPI } from '../services/api';
 
 // Nepal address data
 const provinceData = {
@@ -16,7 +17,7 @@ const provinceData = {
 
 export default function RequestHelp() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { isAuthenticated } = useAuth();
   
   const [formData, setFormData] = useState({
     // Personal Information
@@ -52,21 +53,46 @@ export default function RequestHelp() {
   });
 
   const [districts, setDistricts] = useState([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Receiver Registration Data:', formData);
-    
-    // Simulate successful registration and login
-    const userData = { 
-      name: `${formData.firstName} ${formData.lastName}`, 
-      email: formData.email,
-      type: 'receiver'
-    };
-    const token = 'fake-jwt-token-' + Date.now();
-    login(userData, token);
-    
-    navigate('/profile');
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!isAuthenticated) {
+      setErrorMessage('Please login or create an account first.');
+      setTimeout(() => navigate('/login'), 2000);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const requestData = {
+        request_type: formData.requestType,
+        blood_type: formData.requestType === 'blood' ? formData.bloodGroup : null,
+        organ_type: formData.requestType === 'organ' ? formData.organType : null,
+        units_needed: formData.requestType === 'blood' ? 1 : null,
+        urgency: formData.urgencyLevel || 'medium',
+        reason: formData.additionalInfo || null,
+        location: `${formData.municipality}, ${formData.district}`,
+      };
+
+      await requestsAPI.create(requestData);
+
+      setSuccessMessage('Your request has been submitted successfully! Nearby donors will be notified.');
+      
+      setTimeout(() => {
+        navigate('/profile');
+      }, 3000);
+    } catch (error) {
+      setErrorMessage(error.message || 'Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -508,17 +534,43 @@ export default function RequestHelp() {
               </label>
             </div>
 
+            {/* Error and Success Messages */}
+            {errorMessage && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-red-600">{errorMessage}</p>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-green-600">{successMessage}</p>
+                <p className="text-xs text-slate-500 mt-1">Redirecting to your profile...</p>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!formData.agreedToPrivacy}
+              disabled={!formData.agreedToPrivacy || isSubmitting || successMessage}
               className={`w-full py-4 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${
-                formData.agreedToPrivacy
+                formData.agreedToPrivacy && !isSubmitting && !successMessage
                   ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 cursor-pointer'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <AlertTriangle size={20} /> Submit Request for Help
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="animate-spin" size={20} /> Submitting Request...
+                </>
+              ) : successMessage ? (
+                <>
+                  <CheckCircle size={20} /> Request Submitted!
+                </>
+              ) : (
+                <>
+                  <AlertTriangle size={20} /> Submit Request for Help
+                </>
+              )}
             </button>
           </form>
 
