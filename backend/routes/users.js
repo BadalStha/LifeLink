@@ -1,6 +1,9 @@
 import express from 'express';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 
