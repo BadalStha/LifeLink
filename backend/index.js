@@ -51,14 +51,25 @@ app.get('/', (req, res) => {
 // Registration route
 app.post('/api/register', async (req, res) => {
     const { email, password, role, name, phone, address, city, blood_type, age } = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
+    const normalizedRole = role?.trim().toLowerCase();
+    const allowedRoles = ['user', 'patient', 'admin', 'hospital'];
 
-    if (!email || !password || !role) {
+    if (!normalizedEmail || !password || !normalizedRole) {
         return res.status(400).json({ error: 'Missing fields: email, password, role' });
+    }
+
+    if (!allowedRoles.includes(normalizedRole)) {
+        return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
     // Validate blood type for donors
     const validBloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
-    if (role === 'user' && blood_type && !validBloodTypes.includes(blood_type)) {
+    if (normalizedRole === 'user' && blood_type && !validBloodTypes.includes(blood_type)) {
         return res.status(400).json({ error: 'Invalid blood type' });
     }
 
@@ -67,7 +78,7 @@ app.post('/api/register', async (req, res) => {
 
         const result = await pool.query(
             'INSERT INTO users (email, password, role, name, phone, address, city, blood_type, age) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, email, role, name',
-            [email, hashedPassword, role, name || null, phone || null, address || null, city || null, blood_type || null, age || null]
+            [normalizedEmail, hashedPassword, normalizedRole, name?.trim() || null, phone?.trim() || null, address?.trim() || null, city?.trim() || null, blood_type || null, age || null]
         );
 
         res.status(201).json({
@@ -89,9 +100,10 @@ app.post('/api/register', async (req, res) => {
 // Login route with JWT
 app.post('/api/login', async (req, res) => {
     const { email, password} = req.body;
+    const normalizedEmail = email?.trim().toLowerCase();
 
     // Checking if email and password are provided
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
         return res.status(400).json({ error: 'Missing email or password'});
     }
 
@@ -99,7 +111,7 @@ app.post('/api/login', async (req, res) => {
         // Finding user by email
         const result = await pool.query(
             'SELECT * FROM users WHERE email = $1',
-            [email]
+            [normalizedEmail]
         );
 
         const user = result.rows[0];
