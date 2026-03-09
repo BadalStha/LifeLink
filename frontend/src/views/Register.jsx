@@ -51,6 +51,7 @@ export default function Register() {
   const [districts, setDistricts] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const getErrorMessage = async (response) => {
     try {
@@ -81,6 +82,7 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
 
     if (formData.password.length < 8) {
       setErrorMessage('Password must be at least 8 characters.');
@@ -123,22 +125,13 @@ export default function Register() {
         throw new Error(await getErrorMessage(registerResponse));
       }
 
-      const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        throw new Error('Account created, but login failed. Please use Login page.');
-      }
-
-      const loginData = await loginResponse.json();
-      login(loginData.user, loginData.token);
-      navigate('/profile');
+      // Show success message instead of auto-login
+      setSuccessMessage(`Registration successful! You can now login with ${formData.email}`);
+      
+      // Redirect to login page after 3 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000);
     } catch (error) {
       setErrorMessage(error.message || 'Unable to complete registration right now.');
     } finally {
@@ -512,20 +505,29 @@ export default function Register() {
             </div>
 
             {errorMessage && (
-              <p className="text-sm font-semibold text-red-600 px-1">{errorMessage}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-red-600">{errorMessage}</p>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                <p className="text-sm font-semibold text-green-600">{successMessage}</p>
+                <p className="text-xs text-slate-500 mt-1">Redirecting to login page...</p>
+              </div>
             )}
 
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={!formData.agreedToPrivacy || isSubmitting}
+              disabled={!formData.agreedToPrivacy || isSubmitting || successMessage}
               className={`w-full py-4 px-6 rounded-2xl font-black text-lg transition-all flex items-center justify-center gap-2 ${
-                formData.agreedToPrivacy && !isSubmitting
+                formData.agreedToPrivacy && !isSubmitting && !successMessage
                   ? 'bg-red-600 text-white hover:bg-red-700 shadow-lg shadow-red-200 cursor-pointer'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : 'Register as Donor'}
+              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : successMessage ? 'Registration Complete!' : 'Register as Donor'}
             </button>
           </form>
 

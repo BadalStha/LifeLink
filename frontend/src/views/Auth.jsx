@@ -13,6 +13,7 @@ export default function Auth() {
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -31,6 +32,7 @@ export default function Auth() {
   const handleAuth = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessMessage('');
     setIsSubmitting(true);
 
     try {
@@ -69,23 +71,15 @@ export default function Auth() {
         throw new Error(await getErrorMessage(registerResponse));
       }
 
-      // Auto-login after successful signup.
-      const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
-
-      if (!loginResponse.ok) {
-        throw new Error('Account created, but auto-login failed. Please log in.');
-      }
-
-      const loginData = await loginResponse.json();
-      login(loginData.user, loginData.token);
-      navigate('/');
+      // Show success message instead of auto-login
+      setSuccessMessage(`Account created successfully! You can now login with ${formData.email}`);
+      
+      // Switch to login mode after 2 seconds
+      setTimeout(() => {
+        setIsLogin(true);
+        setSuccessMessage('');
+        setFormData({ email: formData.email, password: '', name: '' });
+      }, 2000);
     } catch (error) {
       setErrorMessage(error.message || 'Something went wrong. Please try again.');
     } finally {
@@ -197,10 +191,18 @@ export default function Auth() {
             )}
 
             {errorMessage && (
-              <p className="text-sm font-semibold text-red-600 px-1">{errorMessage}</p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+                <p className="text-sm font-semibold text-red-600">{errorMessage}</p>
+              </div>
             )}
 
-            <button disabled={isSubmitting} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
+            {successMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                <p className="text-sm font-semibold text-green-600">{successMessage}</p>
+              </div>
+            )}
+
+            <button disabled={isSubmitting || successMessage} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
               {isSubmitting ? 'Please wait...' : isLogin ? "Login to LifeLink" : "Create My Account"} <ArrowRight size={20}/>
             </button>
 

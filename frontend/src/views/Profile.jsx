@@ -1,11 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, MapPin, ArrowLeft, Heart, LogOut } from 'lucide-react';
+import { History, Settings, MapPin, ArrowLeft, Heart, LogOut, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user: authUser } = useAuth();
+  const [profileData, setProfileData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            logout();
+            navigate('/login');
+            return;
+          }
+          throw new Error('Failed to load profile');
+        }
+
+        const data = await response.json();
+        setProfileData(data.user);
+      } catch (err) {
+        setError(err.message || 'Unable to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate, logout]);
 
   const handleLogout = () => {
     logout();
@@ -16,6 +57,38 @@ export default function Profile() {
     { id: 1, hospital: "Dharan BPKIHS", date: "Feb 10, 2026", type: "O+ Blood" },
     { id: 2, hospital: "Biratnagar Red Cross", date: "Nov 15, 2025", type: "O+ Blood" }
   ];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans p-6 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-red-600" size={40} />
+          <p className="font-bold text-slate-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans p-6 flex items-center justify-center">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-200 max-w-md">
+          <p className="text-red-600 font-bold mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/')}
+            className="px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all"
+          >
+            Back to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans p-6">
@@ -33,16 +106,32 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Profile Header (The missing details) */}
+        {/* Profile Header */}
         <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row items-center gap-6">
-          <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-lg">B</div>
+          <div className="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center text-white text-3xl font-black shadow-lg">
+            {getInitials(profileData?.name)}
+          </div>
           
           <div className="flex-1 text-center md:text-left">
-            <h2 className="text-3xl font-black text-slate-900">Tirion Lanister</h2>
+            <h2 className="text-3xl font-black text-slate-900">{profileData?.name || 'User'}</h2>
             <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-2">
-              <p className="flex items-center gap-1 text-slate-400 font-bold"><MapPin size={16}/> Westminster, Scotland</p>
-              <span className="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase">O+ Blood Group</span>
+              {profileData?.city && (
+                <p className="flex items-center gap-1 text-slate-400 font-bold">
+                  <MapPin size={16}/> {profileData.city}
+                </p>
+              )}
+              {profileData?.blood_type && (
+                <span className="bg-red-50 text-red-600 px-4 py-1 rounded-full text-xs font-black uppercase">
+                  {profileData.blood_type} Blood Group
+                </span>
+              )}
+              {!profileData?.blood_type && (
+                <span className="bg-slate-50 text-slate-500 px-4 py-1 rounded-full text-xs font-black uppercase">
+                  No Blood Type Set
+                </span>
+              )}
             </div>
+            <p className="text-sm text-slate-500 font-medium mt-1">{profileData?.email}</p>
           </div>
 
           {/* Settings Shortcut Button */}
