@@ -92,18 +92,47 @@ Frontend will open at: **http://localhost:5173**
 - **Request Help**: Submit emergency blood/organ requests
 - **Admin** (if you create admin user): View dashboard
 
-#### 4. Test Admin Features (Optional)
+#### 4. Test Admin Features
 
-Create admin account manually in database:
+**Step 1: Register a test account**
+- Register with email: admin@test.com
+- Remember your password
+
+**Step 2: Get your user ID**
+
+Option A - Using PostgreSQL:
 ```bash
 psql -U postgres -d lifelink_db
 ```
 
 ```sql
-UPDATE users SET role='admin' WHERE email='your@email.com';
+SELECT id, email, role FROM users WHERE email = 'admin@test.com';
+-- Note the ID (e.g., 3)
 ```
 
-Then login and access `/admin` route.
+Option B - Using the API Demo Endpoint:
+```bash
+# After login, you'll see your user ID in the console or response
+
+# Make yourself admin using the demo endpoint:
+curl -X POST http://localhost:5000/api/demo/make-admin/3
+# Replace 3 with your actual user ID
+```
+
+**Step 3: Access Admin Dashboard**
+1. Login with admin@test.com on http://localhost:5173/login
+2. Navigate to http://localhost:5173/admin
+3. You should see the Admin Dashboard with:
+   - 📊 Live statistics (total users, donors, active requests)
+   - 👥 User management table
+   - 🔍 Real-time search
+   - 📈 Blood type distribution
+
+**Step 4: Test Admin Features**
+- Search users by name or email
+- View all registered users
+- See live platform statistics
+- Click Refresh button to see real-time updates
 
 ### Quick API Tests
 
@@ -117,6 +146,9 @@ curl http://localhost:5000/api/dashboard/stats
 
 # Test donors endpoint
 curl http://localhost:5000/api/donors/locations?limit=5
+
+# Test make-admin endpoint (replace 1 with actual user ID)
+curl -X POST http://localhost:5000/api/demo/make-admin/1
 ```
 
 ### Common Issues & Solutions
@@ -135,30 +167,40 @@ curl http://localhost:5000/api/donors/locations?limit=5
 
 ### Features to Demonstrate
 
-1. **Authentication System**
-   - Register new users
-   - Secure login with JWT
-   - Role-based access
+1. **Authentication System** ✓
+   - Secure user registration with validation
+   - JWT-based login system
+   - Role-based access control (user, patient, admin, hospital)
+   - Automatic session management
+   - Logout functionality
 
-2. **Donor Management**
-   - Interactive map with real donor locations
-   - Search and filter donors
-   - Blood type matching
+2. **Donor Management** ✓
+   - Interactive Leaflet map with 15+ Nepal city coordinates
+   - Real donor locations from database
+   - Search and filter donors by blood type
+   - Blood type matching system
 
-3. **Emergency Requests**
+3. **Emergency Requests** ✓
    - Submit urgent blood/organ needs
-   - Urgency level classification
-   - Location-based matching
+   - Urgency level classification (low/medium/high/critical)
+   - Location-based request matching
+   - Request history tracking
+   - Automatic notification system
 
-4. **Admin Dashboard**
-   - Real-time statistics
-   - User management
-   - Search functionality
+4. **Admin Dashboard** ✓ (NEW)
+   - 📊 Real-time platform statistics (users, donors, requests)
+   - 👥 User management table with full details
+   - 🔍 Search and filter users
+   - 📈 Blood type distribution analytics
+   - 🔄 Refresh button for live updates
+   - ⚙️ Role-based permissions
 
-5. **User Profile**
-   - Donation history
-   - User statistics
-   - Profile updates
+5. **User Profile** ✓
+   - Real donation history from database
+   - Live user statistics (lives saved, member status)
+   - Complete profile editing with backend sync
+   - Settings page with account preferences
+   - Password management
 
 ### Project Structure
 ```
