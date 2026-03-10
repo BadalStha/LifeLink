@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminProtectedRoute from './components/AdminProtectedRoute';
 
 // Ensure these match your sidebar names exactly
 import Home from './views/Home';
@@ -8,6 +9,7 @@ import Auth from './views/Auth';
 import Profile from './views/Profile';
 import Settings from './views/Settings';
 import Admin from './views/Admin';
+import AdminLogin from './views/AdminLogin';
 import Register from './views/Register';
 import RequestHelp from './views/RequestHelp';
 import Privacy from './views/Privacy';
@@ -37,12 +39,13 @@ export default function App() {
           </ProtectedRoute>
         } 
       />
+      <Route path="/admin/login" element={<AdminLogin />} />
       <Route 
         path="/admin" 
         element={
-          <ProtectedRoute requiredRole="admin">
+          <AdminProtectedRoute>
             <Admin />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         } 
       />
       <Route path="*" element={<NotFound />} />

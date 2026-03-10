@@ -9,6 +9,7 @@ import requestsRouter from './routes/requests.js';
 import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
 import donorsRouter from './routes/donors.js';
+import adminAuthRouter from './routes/adminAuth.js';
 
 // Loading .env variables
 dotenv.config();
@@ -177,41 +178,13 @@ app.post('/api/logout', verifyToken, (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
 
-// DEMO ROUTE: Convert user to admin (for testing/demo purposes only)
-// In production, this should be removed or require additional authentication
-app.post('/api/demo/make-admin/:userId', async (req, res) => {
-    const { userId } = req.params;
-    
-    if (isNaN(userId)) {
-        return res.status(400).json({ error: 'Invalid user ID' });
-    }
-    
-    try {
-        const result = await pool.query(
-            'UPDATE users SET role = \'admin\' WHERE id = $1 RETURNING id, email, role',
-            [userId]
-        );
-        
-        if (!result.rows[0]) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-        
-        res.json({
-            message: 'User promoted to admin successfully',
-            user: result.rows[0]
-        });
-    } catch (err) {
-        console.error('Make admin error:', err);
-        res.status(500).json({ error: 'Server error' });
-    }
-});
-
 // Mount all route modules
 app.use('/api', usersRouter);
 app.use('/api', requestsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api', alertsRouter);
 app.use('/api/donors', donorsRouter);
+app.use('/api/admin', adminAuthRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

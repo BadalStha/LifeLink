@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Activity, CheckCircle, AlertTriangle, Search, Loader2, RefreshCw } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Users, Activity, CheckCircle, AlertTriangle, Search, Loader2, RefreshCw, LogOut } from 'lucide-react';
 import ContactModal from '../Components/ContactModal';
 import { dashboardAPI } from '../services/api';
 
 export default function Admin() {
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDonor, setSelectedDonor] = useState("");
   const [users, setUsers] = useState([]);
@@ -36,7 +38,16 @@ export default function Admin() {
   const handleSearch = (e) => {
     setSearchQuery(e.target.value);
   };
+const handleAdminLogout = () => {
+    // Clear admin authentication
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminEmail');
+    // Redirect to admin login
+    navigate('/admin/login');
+  };
 
+  
   // Function to handle the button click
   const handleContact = (name) => {
     setSelectedDonor(name);
@@ -75,6 +86,13 @@ export default function Admin() {
               <Activity size={18} className="text-red-600" />
               <span className="font-bold">System Status: Live</span>
             </div>
+            <button
+              onClick={handleAdminLogout}
+              className="bg-red-50 px-4 py-2 rounded-xl shadow-sm border border-red-200 flex items-center gap-2 hover:bg-red-100 transition-all"
+            >
+              <LogOut size={18} className="text-red-600" />
+              <span className="font-bold text-red-600">Admin Logout</span>
+            </button>
           </div>
         </header>
 

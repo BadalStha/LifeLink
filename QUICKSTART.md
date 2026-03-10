@@ -94,45 +94,45 @@ Frontend will open at: **http://localhost:5173**
 
 #### 4. Test Admin Features
 
-**Step 1: Register a test account**
-- Register with email: admin@test.com
-- Remember your password
+**Admin Login Page: http://localhost:5173/admin/login**
 
-**Step 2: Get your user ID**
-
-Option A - Using PostgreSQL:
-```bash
-psql -U postgres -d lifelink_db
+**Demo Administrator Credentials:**
+```
+Email: admin@lifelink.org
+Password: admin@123456
 ```
 
-```sql
-SELECT id, email, role FROM users WHERE email = 'admin@test.com';
--- Note the ID (e.g., 3)
+**Step-by-Step Admin Testing:**
+
+**Step 1: Go to Admin Login Page**
+- Navigate to: http://localhost:5173/admin/login
+- You will see a secure admin login interface with the LifeLink Shield icon
+- Note: This is completely separate from regular user login
+
+**Step 2: Enter Admin Credentials**
 ```
-
-Option B - Using the API Demo Endpoint:
-```bash
-# After login, you'll see your user ID in the console or response
-
-# Make yourself admin using the demo endpoint:
-curl -X POST http://localhost:5000/api/demo/make-admin/3
-# Replace 3 with your actual user ID
+Email: admin@lifelink.org
+Password: admin@123456
 ```
 
 **Step 3: Access Admin Dashboard**
-1. Login with admin@test.com on http://localhost:5173/login
-2. Navigate to http://localhost:5173/admin
-3. You should see the Admin Dashboard with:
-   - 📊 Live statistics (total users, donors, active requests)
-   - 👥 User management table
-   - 🔍 Real-time search
-   - 📈 Blood type distribution
+- After successful login, you'll be redirected to http://localhost:5173/admin
+- Admin token will be stored separately from user tokens
+- You should see the full Admin Dashboard with all management features
 
-**Step 4: Test Admin Features**
-- Search users by name or email
-- View all registered users
-- See live platform statistics
-- Click Refresh button to see real-time updates
+**Step 4: Test Admin Dashboard Features**
+- View 📊 **Live Statistics**: Total users, active donors, pending requests
+- Manage 👥 **User Table**: See all registered users with their details
+- Use 🔍 **Search Feature**: Filter users by name, email, blood type, or city
+- Monitor 📈 **Analytics**: View platform metrics and distribution
+- Refresh 🔄 **Real-Time Data**: Click refresh button for updated statistics
+
+**Important Security Notes:**
+- Admin login is completely separate from regular user login
+- Regular users cannot access the admin panel
+- Admin credentials are hardcoded for demo purposes (change in production)
+- Admin tokens expire after 24 hours
+- All admin actions are logged in production environments
 
 ### Quick API Tests
 
@@ -147,8 +147,10 @@ curl http://localhost:5000/api/dashboard/stats
 # Test donors endpoint
 curl http://localhost:5000/api/donors/locations?limit=5
 
-# Test make-admin endpoint (replace 1 with actual user ID)
-curl -X POST http://localhost:5000/api/demo/make-admin/1
+# Test admin login endpoint
+curl -X POST http://localhost:5000/api/admin/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@lifelink.org","password":"admin@123456"}'
 ```
 
 ### Common Issues & Solutions
