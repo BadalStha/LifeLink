@@ -8,6 +8,7 @@ import usersRouter from './routes/users.js';
 import requestsRouter from './routes/requests.js';
 import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
+import donorsRouter from './routes/donors.js';
 
 // Loading .env variables
 dotenv.config();
@@ -181,6 +182,7 @@ app.use('/api', usersRouter);
 app.use('/api', requestsRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api', alertsRouter);
+app.use('/api/donors', donorsRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

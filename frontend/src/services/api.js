@@ -166,10 +166,20 @@ export const usersAPI = {
   },
 };
 
+// Donors APIs
+export const donorsAPI = {
+  getLocations: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const response = await fetch(`${API_BASE_URL}/api/donors/locations?${params}`);
+    return handleResponse(response);
+  },
+};
+
 export default {
   auth: authAPI,
   requests: requestsAPI,
   dashboard: dashboardAPI,
   alerts: alertsAPI,
   users: usersAPI,
+  donors: donorsAPI,
 };

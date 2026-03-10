@@ -11,6 +11,7 @@ import Admin from './views/Admin';
 import Register from './views/Register';
 import RequestHelp from './views/RequestHelp';
 import Privacy from './views/Privacy';
+import NotFound from './views/NotFound';
 
 export default function App() {
   return (
@@ -44,6 +45,7 @@ export default function App() {
           </ProtectedRoute>
         } 
       />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
