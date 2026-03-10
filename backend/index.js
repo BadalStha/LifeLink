@@ -10,6 +10,8 @@ import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
 import donorsRouter from './routes/donors.js';
 import adminAuthRouter from './routes/adminAuth.js';
+import announcementsRouter from './routes/announcements.js';
+import chatRouter from './routes/chat.js';
 
 // Loading .env variables
 dotenv.config();
@@ -185,6 +187,8 @@ app.use('/api/dashboard', dashboardRouter);
 app.use('/api', alertsRouter);
 app.use('/api/donors', donorsRouter);
 app.use('/api/admin', adminAuthRouter);
+app.use('/api', announcementsRouter);
+app.use('/api', chatRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -14,6 +14,9 @@ import Register from './views/Register';
 import RequestHelp from './views/RequestHelp';
 import Privacy from './views/Privacy';
 import NotFound from './views/NotFound';
+import About from './views/About';
+import FindDonors from './views/FindDonors';
+import Chat from './views/Chat';
 
 export default function App() {
   return (
@@ -23,6 +26,16 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/request-help" element={<RequestHelp />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/about" element={<About />} />
+      <Route path="/find-donors" element={<FindDonors />} />
+      <Route 
+        path="/chat" 
+        element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/profile" 
         element={

@@ -12,9 +12,15 @@ import {
   Activity,
   PhoneCall,
   Loader2,
+  Search,
+  Megaphone,
+  BookOpen,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI } from '../services/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,6 +29,7 @@ export default function Home() {
   const [language, setLanguage] = useState('en');
   const [stats, setStats] = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -31,17 +38,24 @@ export default function Home() {
         setStats(data.stats);
       } catch (error) {
         console.error('Failed to load stats:', error);
-        setStats({
-          total_donors: 0,
-          active_requests: 0,
-          districts_count: 0,
-        });
+        setStats({ total_donors: 0, active_requests: 0, districts_count: 0 });
       } finally {
         setIsLoadingStats(false);
       }
     };
 
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/announcements?limit=4`);
+        const data = await res.json();
+        setAnnouncements(data.announcements || []);
+      } catch {
+        setAnnouncements([]);
+      }
+    };
+
     fetchStats();
+    fetchAnnouncements();
   }, []);
 
   const copy = {
@@ -185,11 +199,23 @@ export default function Home() {
           >
             <Heart size={18}/> {t.becomeDonor}
           </button>
+          <button
+            onClick={() => navigate('/find-donors')}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all border border-blue-200"
+          >
+            <Search size={18}/> Find Donors
+          </button>
           <button 
             onClick={() => setShowEmergencyModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-200"
           >
             <HandHeart size={18}/> {t.requestHelp}
+          </button>
+          <button
+            onClick={() => navigate('/about')}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all border border-slate-200"
+          >
+            <BookOpen size={18}/> About
           </button>
           <button
             onClick={() => setLanguage((prev) => (prev === 'en' ? 'np' : 'en'))}
@@ -199,7 +225,12 @@ export default function Home() {
             {language === 'en' ? `${t.nepali} | ${t.english}` : `${t.english} | ${t.nepali}`}
           </button>
           {isAuthenticated ? (
-            <button onClick={() => navigate('/profile')} className="hover:text-red-700 transition-all px-2">{t.myProfile}</button>
+            <>
+              <button onClick={() => navigate('/chat')} className="hover:text-blue-600 transition-all px-2">
+                <MessageCircle size={20}/>
+              </button>
+              <button onClick={() => navigate('/profile')} className="hover:text-red-700 transition-all px-2">{t.myProfile}</button>
+            </>
           ) : (
             <button onClick={() => navigate('/login')} className="hover:text-red-700 transition-all px-2">{t.login}</button>
           )}
@@ -368,6 +399,37 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* --- ANNOUNCEMENTS / CAMPAIGNS --- */}
+      {announcements.length > 0 && (
+        <section className="px-4 md:px-10 pb-10">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Megaphone className="text-orange-600" size={22} />
+                <h3 className="text-2xl font-black text-slate-900">Campaigns & Announcements</h3>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="bg-white border-l-4 border-orange-400 rounded-2xl p-5 shadow-sm flex gap-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Megaphone className="text-orange-600" size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 mb-1">{ann.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">{ann.content}</p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      {new Date(ann.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      {ann.author_name ? ` — ${ann.author_name}` : ''}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section className="px-4 md:px-10 pb-16">
         <div className="max-w-7xl mx-auto bg-red-700 rounded-[32px] p-7 md:p-9 text-white shadow-xl">

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, MapPin, ArrowLeft, LogOut, Loader2 } from 'lucide-react';
+import { History, Settings, MapPin, ArrowLeft, LogOut, Loader2, MessageCircle, Bell, ToggleLeft, ToggleRight, AlertTriangle, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { authAPI, usersAPI } from '../services/api';
+import { authAPI, usersAPI, requestsAPI } from '../services/api';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -10,8 +10,11 @@ export default function Profile() {
   const [profileData, setProfileData] = useState(null);
   const [userStats, setUserStats] = useState(null);
   const [donationHistory, setDonationHistory] = useState([]);
+  const [myRequests, setMyRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeTab, setActiveTab] = useState('history');
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -26,13 +29,15 @@ export default function Profile() {
         setProfileData(data.user);
 
         // Fetch user stats and donation history in parallel
-        const [statsData, historyData] = await Promise.all([
+        const [statsData, historyData, requestsData] = await Promise.all([
           usersAPI.getStats().catch(() => ({ stats: { lives_saved: 0, status: 'New Member' } })),
-          usersAPI.getDonationHistory().catch(() => ({ history: [] }))
+          usersAPI.getDonationHistory().catch(() => ({ history: [] })),
+          requestsAPI.getMyRequests().catch(() => ({ requests: [] }))
         ]);
 
         setUserStats(statsData.stats);
         setDonationHistory(historyData.history);
+        setMyRequests(requestsData.requests || []);
       } catch (err) {
         const message = err.message || 'Unable to load profile';
         if (/401|403|token|expired|invalid/i.test(message)) {
@@ -52,6 +57,18 @@ export default function Profile() {
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const toggleAvailability = async () => {
+    setIsToggling(true);
+    try {
+      await authAPI.updateProfile({ is_active: !profileData.is_active });
+      setProfileData(prev => ({ ...prev, is_active: !prev.is_active }));
+    } catch (err) {
+      console.error('Failed to update availability:', err);
+    } finally {
+      setIsToggling(false);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -146,7 +163,48 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* Stats Section (Adding value to the Profile) */}
+        {/* Availability Toggle */}
+        <div className="bg-white rounded-2xl border border-slate-100 px-6 py-4 mb-6 flex items-center justify-between">
+          <div>
+            <p className="font-black text-slate-800">Availability Status</p>
+            <p className="text-sm text-slate-500">
+              {profileData?.is_active
+                ? 'You are visible to recipients and hospitals'
+                : 'You are currently hidden from search results'}
+            </p>
+          </div>
+          <button
+            onClick={toggleAvailability}
+            disabled={isToggling}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+              profileData?.is_active
+                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+            } disabled:opacity-50`}
+          >
+            {profileData?.is_active
+              ? <><ToggleRight size={20} /> Active</>
+              : <><ToggleLeft size={20} /> Inactive</>}
+          </button>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div className="flex gap-3 mb-6">
+          <button
+            onClick={() => navigate('/chat')}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-all border border-blue-200 text-sm"
+          >
+            <MessageCircle size={18} /> Messages
+          </button>
+          <button
+            onClick={() => navigate('/request-help')}
+            className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 transition-all border border-red-200 text-sm"
+          >
+            <Heart size={18} /> Request Help
+          </button>
+        </div>
+
+        {/* Stats Section */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white p-6 rounded-[30px] border border-slate-100 text-center">
             <p className="text-slate-400 font-bold text-xs uppercase tracking-wider mb-1">Lives Saved</p>
@@ -158,29 +216,101 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Donation History */}
-        <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100">
-          <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-            <History className="text-red-600"/> Donation History
-          </h3>
-          <div className="space-y-4">
-            {donationHistory.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">
-                <p className="font-bold">No donation history yet</p>
-                <p className="text-sm mt-1">Your donations will appear here once recorded</p>
-              </div>
-            ) : (
-              donationHistory.map(item => (
-                <div key={item.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center hover:bg-white transition-all">
-                  <div>
-                    <p className="font-black text-slate-900">{item.hospital_name || 'Hospital'}</p>
-                    <p className="text-xs font-bold text-slate-400">{formatDate(item.donation_date)}</p>
+        {/* Tabbed Content: History / My Requests */}
+        <div className="bg-white rounded-[40px] shadow-sm border border-slate-100 overflow-hidden">
+          {/* Tab Header */}
+          <div className="flex border-b border-slate-100">
+            {[
+              { key: 'history', label: 'Donation History', icon: <History size={16}/> },
+              { key: 'requests', label: 'My Requests', icon: <AlertTriangle size={16}/> },
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex-1 flex items-center justify-center gap-2 py-4 font-bold text-sm transition-all ${
+                  activeTab === tab.key
+                    ? 'text-red-600 border-b-2 border-red-600 bg-red-50/40'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="p-6">
+            {/* Donation History Tab */}
+            {activeTab === 'history' && (
+              <div className="space-y-4">
+                {donationHistory.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    <p className="font-bold">No donation history yet</p>
+                    <p className="text-sm mt-1">Your donations will appear here once recorded</p>
                   </div>
-                  <span className="bg-white text-red-600 border border-red-100 px-4 py-1 rounded-full text-xs font-black uppercase">
-                    {item.donation_type === 'Blood' ? (item.blood_type || 'Blood') : (item.organ_type || 'Organ')}
-                  </span>
-                </div>
-              ))
+                ) : (
+                  donationHistory.map(item => (
+                    <div key={item.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100 flex justify-between items-center hover:bg-white transition-all">
+                      <div>
+                        <p className="font-black text-slate-900">{item.hospital_name || 'Hospital'}</p>
+                        <p className="text-xs font-bold text-slate-400">{formatDate(item.donation_date)}</p>
+                      </div>
+                      <span className="bg-white text-red-600 border border-red-100 px-4 py-1 rounded-full text-xs font-black uppercase">
+                        {item.donation_type === 'Blood' ? (item.blood_type || 'Blood') : (item.organ_type || 'Organ')}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* My Requests Tab */}
+            {activeTab === 'requests' && (
+              <div className="space-y-4">
+                {myRequests.length === 0 ? (
+                  <div className="p-8 text-center text-slate-400">
+                    <p className="font-bold">No requests submitted yet</p>
+                    <p className="text-sm mt-1">Your help requests will appear here</p>
+                    <button
+                      onClick={() => navigate('/request-help')}
+                      className="mt-4 px-5 py-2 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all"
+                    >
+                      Submit a Request
+                    </button>
+                  </div>
+                ) : (
+                  myRequests.map(req => {
+                    const urgencyColors = {
+                      critical: 'bg-red-100 text-red-700',
+                      high: 'bg-orange-100 text-orange-700',
+                      medium: 'bg-yellow-100 text-yellow-700',
+                      low: 'bg-green-100 text-green-700',
+                    };
+                    return (
+                      <div key={req.id} className="p-5 bg-slate-50 rounded-3xl border border-slate-100">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-black text-slate-900 capitalize">
+                              {req.request_type} {req.blood_type || req.organ_type || 'Donation'}
+                            </p>
+                            <p className="text-xs text-slate-400">{formatDate(req.created_at)} — {req.location}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${urgencyColors[req.urgency] || urgencyColors.medium}`}>
+                              {req.urgency}
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold capitalize ${
+                              req.status === 'open' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'
+                            }`}>
+                              {req.status}
+                            </span>
+                          </div>
+                        </div>
+                        {req.reason && <p className="text-sm text-slate-500 mt-1">{req.reason}</p>}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             )}
           </div>
         </div>

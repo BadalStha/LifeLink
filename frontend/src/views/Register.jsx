@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Heart, Mail, Phone, CheckCircle, Lock } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Heart, Mail, Phone, CheckCircle, Lock, Users, Stethoscope } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -19,6 +19,17 @@ const provinceData = {
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  // 'donor' = blood/organ donor, 'recipient' = someone who needs help
+  const [userRole, setUserRole] = useState(
+    searchParams.get('type') === 'recipient' ? 'recipient' : 'donor'
+  );
+
+  // Organ donation willingness (for donors)
+  const [organDonations, setOrganDonations] = useState({
+    kidney: false, liver: false, heart: false, lung: false, cornea: false, pancreas: false,
+  });
   
   const [formData, setFormData] = useState({
     // About You
@@ -105,19 +116,26 @@ export default function Register() {
       const age = calculateAge(formData.dobYear, formData.dobMonth, formData.dobDay);
       const address = `${formData.municipality}, Ward ${formData.ward}, ${formData.district}, ${formData.province}`;
 
+      // Build organ donation info for medical_history
+      const willingOrgans = Object.entries(organDonations).filter(([, v]) => v).map(([k]) => k);
+      const medicalNote = userRole === 'donor' && willingOrgans.length > 0
+        ? `Willing to donate: ${willingOrgans.join(', ')}`
+        : null;
+
       const registerResponse = await fetch(`${API_BASE_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          role: 'user',
+          role: userRole === 'recipient' ? 'patient' : 'user',
           name: fullName,
           phone: formData.mobile || formData.telephone,
           city: formData.district,
           address,
           age,
           blood_type: formData.bloodType || null,
+          medical_history: medicalNote || null,
         }),
       });
 
@@ -126,7 +144,7 @@ export default function Register() {
       }
 
       // Show success message instead of auto-login
-      setSuccessMessage(`Registration successful! You can now login with ${formData.email}`);
+      setSuccessMessage(`Registration successful! Welcome to LifeLink, ${formData.firstName}! You can now login.`);
       
       // Redirect to login page after 3 seconds
       setTimeout(() => {
@@ -153,6 +171,10 @@ export default function Register() {
     }
   };
 
+  const toggleOrgan = (organ) => {
+    setOrganDonations(prev => ({ ...prev, [organ]: !prev[organ] }));
+  };
+
   // Generate arrays for date dropdowns
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -174,8 +196,58 @@ export default function Register() {
           <div className="flex items-center gap-3 mb-8">
             <Heart className="text-red-600" size={32} />
             <div>
-              <h2 className="text-4xl font-black text-slate-900">Become a Life Saver</h2>
-              <p className="text-slate-500 font-medium">Register as a donor to help save lives</p>
+              <h2 className="text-4xl font-black text-slate-900">Join LifeLink</h2>
+              <p className="text-slate-500 font-medium">Create your account to get started</p>
+            </div>
+          </div>
+
+          {/* ===== ROLE SELECTOR ===== */}
+          <div className="mb-8">
+            <p className="text-sm font-bold text-slate-600 mb-3 uppercase tracking-wider">I am registering as:</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setUserRole('donor')}
+                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                  userRole === 'donor'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  userRole === 'donor' ? 'bg-red-500 text-white' : 'bg-slate-200 text-slate-500'
+                }`}>
+                  <Heart size={20} />
+                </div>
+                <div>
+                  <p className={`font-black text-sm ${ userRole === 'donor' ? 'text-red-700' : 'text-slate-700' }`}>
+                    Blood / Organ Donor
+                  </p>
+                  <p className="text-xs text-slate-500">I want to donate</p>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setUserRole('recipient')}
+                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${
+                  userRole === 'recipient'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                  userRole === 'recipient' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-500'
+                }`}>
+                  <Stethoscope size={20} />
+                </div>
+                <div>
+                  <p className={`font-black text-sm ${ userRole === 'recipient' ? 'text-blue-700' : 'text-slate-700' }`}>
+                    Patient / Recipient
+                  </p>
+                  <p className="text-xs text-slate-500">I need help</p>
+                </div>
+              </button>
             </div>
           </div>
 
@@ -388,12 +460,13 @@ export default function Register() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Blood Group</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Blood Group {userRole === 'donor' ? '*' : ''}</label>
                   <select
                     name="bloodType"
                     value={formData.bloodType}
                     onChange={handleChange}
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required={userRole === 'donor'}
                   >
                     <option value="">Select blood type</option>
                     {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map((type) => (
@@ -403,6 +476,48 @@ export default function Register() {
                 </div>
               </div>
             </div>
+
+            {/* ===== ORGAN DONATION SECTION (donors only) ===== */}
+            {userRole === 'donor' && (
+              <div className="border-l-4 border-purple-600 pl-6">
+                <h3 className="text-2xl font-black text-slate-900 mb-1">Organ Donation Willingness</h3>
+                <p className="text-slate-500 text-sm mb-5 font-medium">
+                  Select the organs you are willing to donate. This is voluntary and does not constitute a legal commitment.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { key: 'kidney', label: 'Kidney', emoji: '🫘' },
+                    { key: 'liver', label: 'Liver', emoji: '🫁' },
+                    { key: 'heart', label: 'Heart', emoji: '❤️' },
+                    { key: 'lung', label: 'Lung', emoji: '🫁' },
+                    { key: 'cornea', label: 'Cornea (Eyes)', emoji: '👁️' },
+                    { key: 'pancreas', label: 'Pancreas', emoji: '🩺' },
+                  ].map(({ key, label, emoji }) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => toggleOrgan(key)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                        organDonations[key]
+                          ? 'border-purple-500 bg-purple-50'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="text-xl">{emoji}</span>
+                      <span className={`font-bold text-sm ${ organDonations[key] ? 'text-purple-700' : 'text-slate-600' }`}>
+                        {label}
+                      </span>
+                      {organDonations[key] && (
+                        <CheckCircle size={16} className="ml-auto text-purple-500" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-400 mt-3">
+                  Your family's consent will always be required. This information helps hospitals identify potential donors quickly.
+                </p>
+              </div>
+            )}
 
             {/* ===== ADDRESS SECTION ===== */}
             <div className="border-l-4 border-blue-600 pl-6">
@@ -527,7 +642,7 @@ export default function Register() {
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : successMessage ? 'Registration Complete!' : 'Register as Donor'}
+              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : successMessage ? 'Registration Complete!' : userRole === 'donor' ? 'Register as Donor' : 'Register as Recipient'}
             </button>
           </form>
 
