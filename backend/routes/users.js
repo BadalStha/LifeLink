@@ -1,5 +1,9 @@
 import express from 'express';
 import { Pool } from 'pg';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const router = express.Router();
 
@@ -21,7 +25,6 @@ const verifyToken = (req, res, next) => {
     }
 
     const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-    const jwt = require('jsonwebtoken');
     
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
@@ -148,6 +151,108 @@ router.get('/search', async (req, res) => {
     } catch (err) {
         console.error('Search users error:', err);
         res.status(500).json({ error: 'Server error searching users' });
+    }
+});
+
+// GET /api/user/stats - Get current user's statistics
+router.get('/user/stats', verifyToken, async (req, res) => {
+    try {
+        // Count blood donations by this user
+        const bloodDonations = await pool.query(
+            `SELECT COUNT(*) as count FROM blood_donations WHERE donor_id = $1`,
+            [req.userId]
+        );
+
+        // Count organ donations by this user
+        const organDonations = await pool.query(
+            `SELECT COUNT(*) as count FROM organ_donations WHERE donor_id = $1`,
+            [req.userId]
+        );
+
+        // Count donation requests created by this user
+        const requestsCreated = await pool.query(
+            `SELECT COUNT(*) as count FROM donation_requests WHERE user_id = $1`,
+            [req.userId]
+        );
+
+        const totalDonations = parseInt(bloodDonations.rows[0].count) + parseInt(organDonations.rows[0].count);
+        
+        // Determine status based on activity
+        let status = 'New Member';
+        if (totalDonations >= 10) {
+            status = 'Legendary Hero';
+        } else if (totalDonations >= 5) {
+            status = 'Super Hero';
+        } else if (totalDonations >= 2) {
+            status = 'Active Hero';
+        } else if (totalDonations >= 1) {
+            status = 'Rising Hero';
+        }
+
+        res.json({
+            stats: {
+                lives_saved: totalDonations,
+                blood_donations: parseInt(bloodDonations.rows[0].count),
+                organ_donations: parseInt(organDonations.rows[0].count),
+                requests_created: parseInt(requestsCreated.rows[0].count),
+                status: status
+            }
+        });
+    } catch (err) {
+        console.error('Get user stats error:', err);
+        res.status(500).json({ error: 'Server error fetching user stats' });
+    }
+});
+
+// GET /api/user/donation-history - Get current user's donation history
+router.get('/user/donation-history', verifyToken, async (req, res) => {
+    try {
+        const { limit = 10 } = req.query;
+
+        // Get blood donations
+        const bloodDonations = await pool.query(
+            `SELECT 
+                bd.id,
+                bd.donation_date,
+                bd.location as hospital_name,
+                bd.blood_type,
+                'Blood' as donation_type,
+                bd.created_at
+             FROM blood_donations bd
+             WHERE bd.donor_id = $1
+             ORDER BY bd.donation_date DESC
+             LIMIT $2`,
+            [req.userId, parseInt(limit)]
+        );
+
+        // Get organ donations
+        const organDonations = await pool.query(
+            `SELECT 
+                od.id,
+                od.donation_date,
+                NULL::text as hospital_name,
+                od.organ_type,
+                'Organ' as donation_type,
+                od.created_at
+             FROM organ_donations od
+             WHERE od.donor_id = $1
+             ORDER BY od.donation_date DESC
+             LIMIT $2`,
+            [req.userId, parseInt(limit)]
+        );
+
+        // Combine and sort by donation_date
+        const allDonations = [
+            ...bloodDonations.rows,
+            ...organDonations.rows
+        ].sort((a, b) => new Date(b.donation_date) - new Date(a.donation_date));
+
+        res.json({
+            history: allDonations.slice(0, parseInt(limit))
+        });
+    } catch (err) {
+        console.error('Get donation history error:', err);
+        res.status(500).json({ error: 'Server error fetching donation history' });
     }
 });
 

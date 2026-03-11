@@ -19,8 +19,13 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
     if (token && userData) {
-      setIsAuthenticated(true);
-      setUser(JSON.parse(userData));
+      try {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(userData));
+      } catch {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
     }
   }, []);
 

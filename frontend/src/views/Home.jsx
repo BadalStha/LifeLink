@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -11,14 +11,38 @@ import {
   Users,
   Activity,
   PhoneCall,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { dashboardAPI } from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [language, setLanguage] = useState('en');
+  const [stats, setStats] = useState(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await dashboardAPI.getStats();
+        setStats(data.stats);
+      } catch (error) {
+        console.error('Failed to load stats:', error);
+        setStats({
+          total_donors: 0,
+          active_requests: 0,
+          districts_count: 0,
+        });
+      } finally {
+        setIsLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const copy = {
     en: {
@@ -213,18 +237,26 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-3 gap-3 mt-8">
-              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-                <p className="text-lg font-black text-emerald-700">77</p>
-                <p className="text-xs font-semibold text-slate-600">{t.districtReach}</p>
-              </div>
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-3">
-                <p className="text-lg font-black text-red-700">24/7</p>
-                <p className="text-xs font-semibold text-slate-600">{t.urgentAlerts}</p>
-              </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
-                <p className="text-lg font-black text-blue-700">1,000+</p>
-                <p className="text-xs font-semibold text-slate-600">{t.activeSupporters}</p>
-              </div>
+              {isLoadingStats ? (
+                <div className="col-span-3 flex justify-center py-4">
+                  <Loader2 className="animate-spin text-slate-400" size={24} />
+                </div>
+              ) : (
+                <>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
+                    <p className="text-lg font-black text-emerald-700">{stats?.districts_count || 0}</p>
+                    <p className="text-xs font-semibold text-slate-600">{t.districtReach}</p>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-2xl p-3">
+                    <p className="text-lg font-black text-red-700">{stats?.active_requests || 0}</p>
+                    <p className="text-xs font-semibold text-slate-600">{t.urgentAlerts}</p>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
+                    <p className="text-lg font-black text-blue-700">{stats?.total_donors?.toLocaleString() || 0}</p>
+                    <p className="text-xs font-semibold text-slate-600">{t.activeSupporters}</p>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
