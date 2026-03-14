@@ -110,7 +110,7 @@ router.get('/users/:userId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ, is_active, created_at 
+            `SELECT id, email, role, name, phone, city, blood_type, age, donation_type, donation_organ, is_active, created_at 
              FROM users 
              WHERE id = $1 AND is_active = true`,
             [userId]

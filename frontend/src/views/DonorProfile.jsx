@@ -89,7 +89,15 @@ export default function DonorProfile() {
               {getInitials(donor.name)}
             </div>
             <div className="flex-1 pb-2">
-              <h1 className="text-4xl font-black text-white mb-2">{donor.name || 'Anonymous Donor'}</h1>
+              <div className="flex items-center gap-3 flex-wrap mb-2">
+                <h1 className="text-4xl font-black text-white">{donor.name || 'Anonymous Donor'}</h1>
+                <button
+                  onClick={() => navigate(`/chat?to=${donor.id}`)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-red-700 font-black rounded-xl hover:bg-red-50 transition-all"
+                >
+                  <MessageCircle size={18} /> Send Message
+                </button>
+              </div>
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${availabilityColor}`}>
                 {availabilityLabel}
               </span>
@@ -113,18 +121,20 @@ export default function DonorProfile() {
                 </div>
               </div>
             )}
-            {donor.donation_type === 'organ' && donor.organ_type && (
+            {donor.donation_type === 'organ' && donor.donation_organ && (
               <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-xl">
                 <Heart size={20} className="text-purple-600" />
                 <div>
                   <p className="text-sm text-slate-500 font-semibold">Organ Type</p>
-                  <p className="text-lg font-black text-purple-700 capitalize">{donor.organ_type}</p>
+                  <p className="text-lg font-black text-purple-700 capitalize">{donor.donation_organ}</p>
                 </div>
               </div>
             )}
             {donor.donation_type && (
               <p className="text-sm text-slate-600 mt-3 p-3 bg-slate-50 rounded-xl">
-                Ready to donate: <span className="font-bold capitalize">{donor.donation_type}</span>
+                Ready to donate: <span className="font-bold capitalize">
+                  {donor.donation_type === 'organ' && donor.donation_organ ? donor.donation_organ : donor.donation_type}
+                </span>
               </p>
             )}
           </div>
@@ -152,6 +162,15 @@ export default function DonorProfile() {
                 </div>
               </div>
             )}
+            {donor.phone && (
+              <div className="flex items-center gap-3">
+                <Phone size={18} className="text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500 font-semibold">Phone</p>
+                  <p className="text-slate-800 font-semibold">{donor.phone}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -168,12 +187,6 @@ export default function DonorProfile() {
                 </div>
               </div>
             )}
-            {donor.role && (
-              <div>
-                <p className="text-xs text-slate-500 font-semibold mb-1">User Type</p>
-                <p className="text-slate-800 font-semibold capitalize bg-slate-50 p-2 rounded-lg">{donor.role}</p>
-              </div>
-            )}
             {donor.created_at && (
               <div>
                 <p className="text-xs text-slate-500 font-semibold mb-1">Member Since</p>
@@ -183,15 +196,6 @@ export default function DonorProfile() {
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 mb-8">
-          <button
-            onClick={() => navigate(`/chat?to=${donor.id}`)}
-            className="flex-1 flex items-center justify-center gap-2 py-3 bg-red-600 text-white font-black rounded-xl hover:bg-red-700 transition-all"
-          >
-            <MessageCircle size={20} /> Send Message
-          </button>
-        </div>
       </div>
     </div>
   );
