@@ -23,10 +23,10 @@ router.get('/stats', async (req, res) => {
             'SELECT COUNT(*) as total_users FROM users WHERE is_active = true'
         );
 
-        // Get donors count (users with blood_type or role = 'user')
+           // Get donors count (users who completed donation preference form)
         const donorsResult = await pool.query(
             `SELECT COUNT(*) as total_donors FROM users 
-             WHERE is_active = true AND (blood_type IS NOT NULL OR role = 'user')`
+               WHERE is_active = true AND donation_type IS NOT NULL`
         );
 
         // Get active requests count

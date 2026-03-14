@@ -114,25 +114,17 @@ export default function Auth() {
           <div className="flex justify-between items-center mb-10">
             <h3 className="text-3xl font-black text-slate-900">{isLogin ? "Login" : "Sign Up"}</h3>
             <button 
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                if (isLogin) {
+                  navigate('/register');
+                } else {
+                  setIsLogin(true);
+                }
+              }}
               className="text-red-600 font-black text-sm uppercase tracking-widest hover:underline"
             >
               {isLogin ? "Create Account" : "I have an account"}
             </button>
-          </div>
-
-          {/* Social Login Section */}
-          <div className="grid grid-cols-1 gap-4 mb-8">
-            <button className="flex items-center justify-center gap-3 w-full border-2 border-slate-100 py-4 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all">
-              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/action/google.svg" alt="Google" className="w-5 h-5"/>
-              Continue with Google
-            </button>
-          </div>
-
-          <div className="relative flex py-5 items-center mb-4">
-            <div className="flex-grow border-t border-slate-100"></div>
-            <span className="flex-shrink mx-4 text-slate-400 text-xs font-black uppercase tracking-widest">Or use Email/Phone</span>
-            <div className="flex-grow border-t border-slate-100"></div>
           </div>
 
           <form onSubmit={handleAuth} className="space-y-5">
@@ -180,6 +172,18 @@ export default function Auth() {
               </button>
             </div>
 
+            {isLogin && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-sm font-bold text-red-600 hover:underline"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
             {/* Password Strength Indicator (Visual Only) */}
             {!isLogin && (
               <div className="flex gap-1 px-2">
@@ -205,17 +209,6 @@ export default function Auth() {
             <button disabled={isSubmitting || successMessage} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-lg hover:bg-black transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed">
               {isSubmitting ? 'Please wait...' : isLogin ? "Login to LifeLink" : "Create My Account"} <ArrowRight size={20}/>
             </button>
-
-            <p className="text-center text-sm text-slate-500 font-semibold">
-              Prefer full donor form?{' '}
-              <button
-                type="button"
-                onClick={() => navigate('/register')}
-                className="text-red-600 hover:underline"
-              >
-                Register here
-              </button>
-            </p>
           </form>
         </div>
       </div>

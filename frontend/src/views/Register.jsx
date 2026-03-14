@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Heart, Mail, Phone, CheckCircle, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,12 @@ const provinceData = {
 export default function Register() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [searchParams] = useSearchParams();
+
+  // 'donor' = blood/organ donor, 'recipient' = someone who needs help
+  const [userRole, setUserRole] = useState(
+    searchParams.get('type') === 'recipient' ? 'recipient' : 'donor'
+  );
   
   const [formData, setFormData] = useState({
     // About You
@@ -34,9 +40,7 @@ export default function Register() {
     email: '',
     password: '',
     confirmPassword: '',
-    telephone: '',
     mobile: '',
-    bloodType: '',
     
     // Address
     province: '',
@@ -111,13 +115,14 @@ export default function Register() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          role: 'user',
+          role: userRole === 'recipient' ? 'patient' : 'user',
           name: fullName,
-          phone: formData.mobile || formData.telephone,
+          phone: formData.mobile,
           city: formData.district,
           address,
           age,
-          blood_type: formData.bloodType || null,
+          blood_type: null,
+          medical_history: null,
         }),
       });
 
@@ -126,7 +131,7 @@ export default function Register() {
       }
 
       // Show success message instead of auto-login
-      setSuccessMessage(`Registration successful! You can now login with ${formData.email}`);
+      setSuccessMessage(`Registration successful! Welcome to LifeLink, ${formData.firstName}! You can now login.`);
       
       // Redirect to login page after 3 seconds
       setTimeout(() => {
@@ -153,11 +158,9 @@ export default function Register() {
     }
   };
 
-  // Generate arrays for date dropdowns
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  // Date constants for DOB controls
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans">
@@ -174,8 +177,8 @@ export default function Register() {
           <div className="flex items-center gap-3 mb-8">
             <Heart className="text-red-600" size={32} />
             <div>
-              <h2 className="text-4xl font-black text-slate-900">Become a Life Saver</h2>
-              <p className="text-slate-500 font-medium">Register as a donor to help save lives</p>
+              <h2 className="text-4xl font-black text-slate-900">Join LifeLink</h2>
+              <p className="text-slate-500 font-medium">Create your account to get started</p>
             </div>
           </div>
 
@@ -228,16 +231,17 @@ export default function Register() {
               <div className="mb-6">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Date of Birth *</label>
                 <div className="grid grid-cols-3 gap-3">
-                  <select
+                  <input
+                    type="number"
                     name="dobDay"
                     value={formData.dobDay}
                     onChange={handleChange}
+                    placeholder="Day"
+                    min="1"
+                    max="31"
                     className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
-                  >
-                    <option value="">Day</option>
-                    {days.map(day => <option key={day} value={day}>{day}</option>)}
-                  </select>
+                  />
                   
                   <select
                     name="dobMonth"
@@ -250,16 +254,17 @@ export default function Register() {
                     {months.map((month, idx) => <option key={month} value={idx + 1}>{month}</option>)}
                   </select>
                   
-                  <select
+                  <input
+                    type="number"
                     name="dobYear"
                     value={formData.dobYear}
                     onChange={handleChange}
+                    placeholder="Year"
+                    min="1900"
+                    max={currentYear}
                     className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
-                  >
-                    <option value="">Year</option>
-                    {years.map(year => <option key={year} value={year}>{year}</option>)}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -354,22 +359,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                {/* Telephone */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Telephone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                      type="tel"
-                      name="telephone"
-                      value={formData.telephone}
-                      onChange={handleChange}
-                      placeholder="+977-01-XXXXXXX"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-
                 {/* Mobile */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Mobile Number *</label>
@@ -387,20 +376,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Blood Group</label>
-                  <select
-                    name="bloodType"
-                    value={formData.bloodType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    <option value="">Select blood type</option>
-                    {['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'].map((type) => (
-                      <option key={type} value={type}>{type}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
             </div>
 
@@ -527,7 +502,7 @@ export default function Register() {
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : successMessage ? 'Registration Complete!' : 'Register as Donor'}
+              <CheckCircle size={20} /> {isSubmitting ? 'Creating Account...' : successMessage ? 'Registration Complete!' : 'Register'}
             </button>
           </form>
 

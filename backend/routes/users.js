@@ -38,12 +38,27 @@ const verifyToken = (req, res, next) => {
 
 // PUT /api/profile - Update current user's profile
 router.put('/profile', verifyToken, async (req, res) => {
-    const { name, phone, address, city, state, country, blood_type, age, medical_history } = req.body;
+    const { name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ } = req.body;
 
     // Validate blood type if provided
     const validBloodTypes = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
     if (blood_type && !validBloodTypes.includes(blood_type)) {
         return res.status(400).json({ error: 'Invalid blood type' });
+    }
+
+    const validDonationTypes = ['blood', 'organ'];
+    const validOrgans = ['kidney', 'liver', 'heart', 'lung', 'cornea', 'pancreas', 'intestine'];
+
+    if (donation_type && !validDonationTypes.includes(donation_type)) {
+        return res.status(400).json({ error: 'Invalid donation type' });
+    }
+
+    if (donation_type === 'organ' && (!donation_organ || !validOrgans.includes(donation_organ))) {
+        return res.status(400).json({ error: 'Select a valid organ' });
+    }
+
+    if (donation_organ && !validOrgans.includes(donation_organ)) {
+        return res.status(400).json({ error: 'Invalid organ type' });
     }
 
     try {
@@ -58,10 +73,16 @@ router.put('/profile', verifyToken, async (req, res) => {
                  blood_type = COALESCE($8, blood_type), 
                  age = COALESCE($9, age), 
                  medical_history = COALESCE($10, medical_history),
+                 donation_type = COALESCE($11, donation_type),
+                 donation_organ = CASE
+                    WHEN $11 = 'blood' THEN NULL
+                    WHEN $11 = 'organ' THEN $12
+                    ELSE donation_organ
+                 END,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $1 
-             RETURNING id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history`,
-            [req.userId, name, phone, address, city, state, country, blood_type, age, medical_history]
+             RETURNING id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ`,
+            [req.userId, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ]
         );
 
         if (!result.rows[0]) {
@@ -89,7 +110,7 @@ router.get('/users/:userId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT id, email, role, name, city, blood_type, age, is_active, created_at 
+            `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ, is_active, created_at 
              FROM users 
              WHERE id = $1 AND is_active = true`,
             [userId]
@@ -108,18 +129,28 @@ router.get('/users/:userId', async (req, res) => {
 
 // GET /api/users/search - Search for users by blood type, role, city, organ type
 router.get('/search', async (req, res) => {
-    const { blood_type, role, city, organ_type, limit = 20, offset = 0 } = req.query;
+    const { blood_type, role, city, organ_type, ready_to_donate, limit = 20, offset = 0, search } = req.query;
 
     try {
-        let query = `SELECT id, email, role, name, city, blood_type, age, created_at 
+        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at 
                      FROM users 
                      WHERE is_active = true`;
         const params = [];
         let paramCount = 1;
 
+        if (ready_to_donate === 'true') {
+            query += ` AND donation_type IS NOT NULL`;
+        }
+
+        if (search) {
+            query += ` AND LOWER(name) LIKE LOWER($${paramCount})`;
+            params.push(`%${search}%`);
+            paramCount++;
+        }
+
         // Add filters
         if (blood_type) {
-            query += ` AND blood_type = $${paramCount}`;
+            query += ` AND donation_type = 'blood' AND blood_type = $${paramCount}`;
             params.push(blood_type);
             paramCount++;
         }
@@ -133,6 +164,12 @@ router.get('/search', async (req, res) => {
         if (city) {
             query += ` AND LOWER(city) LIKE LOWER($${paramCount})`;
             params.push(`%${city}%`);
+            paramCount++;
+        }
+
+        if (organ_type) {
+            query += ` AND donation_type = 'organ' AND LOWER(donation_organ) = LOWER($${paramCount})`;
+            params.push(organ_type);
             paramCount++;
         }
 
