@@ -277,7 +277,7 @@ router.get('/user/stats', verifyToken, async (req, res) => {
 
         // Count donation requests created by this user
         const requestsCreated = await pool.query(
-            `SELECT COUNT(*) as count FROM donation_requests WHERE user_id = $1`,
+            `SELECT COUNT(*) as count FROM donation_requests WHERE requester_id = $1`,
             [req.userId]
         );
 
@@ -412,8 +412,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
                     OR a.target_audience = 'all_users'
                     OR (
                         a.target_audience = 'specific_blood_type'
-                        AND $2 IS NOT NULL
-                        AND LOWER(COALESCE(a.blood_type_target, '')) = LOWER($2)
+                        AND LOWER(COALESCE(a.blood_type_target, '')) = LOWER($2::text)
                     )
                )
              ORDER BY a.created_at DESC
@@ -514,6 +513,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
                 body: `${requestLabel} is ${row.status}. Urgency: ${row.urgency}.`,
                 created_at: row.created_at,
                 is_unread: true,
+                urgency: row.urgency,
                 reference_id: row.id
             };
         });
@@ -530,6 +530,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
                 body: row.message || `${requestLabel} • Urgency: ${row.urgency}${row.location ? ` • ${row.location}` : ''}`,
                 created_at: row.created_at,
                 is_unread: true,
+                urgency: row.urgency,
                 reference_id: row.related_request_id || row.id
             };
         });
@@ -546,6 +547,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
                 body: `${requestLabel} • Urgency: ${row.urgency}${row.location ? ` • ${row.location}` : ''}`,
                 created_at: row.created_at,
                 is_unread: true,
+                urgency: row.urgency,
                 reference_id: row.id
             };
         });
