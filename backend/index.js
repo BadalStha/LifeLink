@@ -5,6 +5,11 @@ import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import usersRouter from './routes/users.js';
 import requestsRouter from './routes/requests.js';
 import dashboardRouter from './routes/dashboard.js';
@@ -24,6 +29,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // JWT Verification Middleware
 const verifyToken = (req, res, next) => {
@@ -195,6 +201,10 @@ const ensureSchema = async () => {
     await pool.query(`
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS donation_organ VARCHAR(50)
+    `).catch(() => {});
+    await pool.query(`
+        ALTER TABLE users
+        ADD COLUMN IF NOT EXISTS profile_picture TEXT
     `).catch(() => {});
 };
 
@@ -539,7 +549,7 @@ app.post('/api/forgot-password/reset', async (req, res) => {
 app.get('/api/profile', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ, is_active, created_at FROM users WHERE id = $1',
+            'SELECT id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ, is_active, created_at, profile_picture FROM users WHERE id = $1',
             [req.userId]
         );
 

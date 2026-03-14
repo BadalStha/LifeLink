@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Droplet, Heart, Filter, Loader2,
-  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation
+  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation, Droplets
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -481,20 +481,27 @@ export default function FindDonors() {
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
       {/* Navbar */}
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-600 hover:text-red-600 font-bold transition-all">
-            <ArrowLeft size={20} />
+      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 md:px-12 py-4 flex items-center justify-between sticky top-0 z-40">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/')} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-all">
+            <ArrowLeft size={18}/>
           </button>
-          <h1 className="text-xl font-black text-red-700">Find Donors</h1>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center">
+              <Droplets size={14} className="text-white"/>
+            </div>
+            <span className="font-black text-slate-900">LifeLink</span>
+          </div>
+          <span className="text-slate-300 mx-1">|</span>
+          <span className="font-bold text-slate-700 text-sm">Find Donors</span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           {!isAuthenticated && (
-            <button onClick={() => navigate('/login')} className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all">
+            <button onClick={() => navigate('/login')} className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg text-sm hover:bg-red-700 transition-all">
               Login
             </button>
           )}
-          <button onClick={() => navigate('/request-help')} className="px-4 py-2 bg-slate-900 text-white font-bold rounded-xl text-sm hover:bg-black transition-all">
+          <button onClick={() => navigate('/request-help')} className="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg text-sm hover:bg-black transition-all">
             Request Help
           </button>
         </div>

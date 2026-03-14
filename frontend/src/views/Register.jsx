@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Heart, Mail, Phone, CheckCircle, Lock } from 'lucide-react';
+import { Heart, Mail, Phone, CheckCircle, Lock, Droplets } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -163,24 +163,36 @@ export default function Register() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <button 
-          onClick={() => navigate('/')} 
-          className="mb-6 text-slate-500 font-bold hover:text-red-600 transition-all"
-        >
-          ← Back to Home
-        </button>
-
-        <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
-          <div className="flex items-center gap-3 mb-8">
-            <Heart className="text-red-600" size={32} />
-            <div>
-              <h2 className="text-4xl font-black text-slate-900">Join LifeLink</h2>
-              <p className="text-slate-500 font-medium">Create your account to get started</p>
-            </div>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Navbar */}
+      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+            <Droplets size={16} className="text-white"/>
           </div>
+          <span className="text-lg font-black text-slate-900">LifeLink</span>
+        </div>
+        <p className="text-slate-500 text-sm font-medium hidden md:block">Blood & Organ Donation Network of Nepal</p>
+        <button onClick={() => navigate('/login')} className="text-sm font-semibold text-red-600 hover:underline">
+          Already have an account? Login
+        </button>
+      </nav>
+
+      {/* Page header banner */}
+      <div className="bg-gradient-to-r from-red-700 to-red-800 text-white py-10 px-5 md:px-12">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+            <Heart className="text-white" size={28}/>
+          </div>
+          <div>
+            <h1 className="text-3xl font-black leading-tight">Join LifeLink</h1>
+            <p className="text-red-200 mt-1">Register to donate blood or organs and save lives across Nepal.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-5 md:px-12 py-8">
+        <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-slate-100">
 
           <form onSubmit={handleSubmit} className="space-y-8">
             
@@ -473,7 +485,7 @@ export default function Register() {
                     >
                       Privacy Statement
                     </a>
-                    {' '}and understand that my personal information will be used only for blood donation purposes. I confirm that all information provided is accurate and truthful.
+                    {' '}and understand that my personal information will be used only for blood and organ donation purposes. I confirm that all information provided is accurate and truthful.
                   </p>
                 </div>
               </label>
