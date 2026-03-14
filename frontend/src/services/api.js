@@ -182,6 +182,13 @@ export const usersAPI = {
   },
 };
 
+export const notificationsAPI = {
+  getMyNotifications: async (limit = 20) => {
+    const response = await authFetch(`${API_BASE_URL}/api/user/notifications?limit=${limit}`);
+    return handleResponse(response);
+  },
+};
+
 // Donors APIs
 export const donorsAPI = {
   getLocations: async (filters = {}) => {

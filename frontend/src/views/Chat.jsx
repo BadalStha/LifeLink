@@ -131,6 +131,12 @@ export default function Chat() {
   }, [activeConvId]);
 
   useEffect(() => {
+    if (activeConvId && !activeConvName) {
+      resolveConversationName(activeConvId);
+    }
+  }, [activeConvId, activeConvName]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -146,13 +152,30 @@ export default function Chat() {
         const toId = searchParams.get('to');
         if (toId) {
           const found = data.conversations?.find(c => String(c.partner_id) === toId);
-          if (found) setActiveConvName(found.partner_name);
+          if (found?.partner_name) {
+            setActiveConvName(found.partner_name);
+          } else {
+            resolveConversationName(toId);
+          }
         }
       }
     } catch (err) {
       console.error('Failed to load conversations:', err);
     } finally {
       setIsLoadingConvs(false);
+    }
+  };
+
+  const resolveConversationName = async (userId) => {
+    if (!userId) return;
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/users/${userId}`);
+      const data = await res.json();
+      if (res.ok && data?.user?.name) {
+        setActiveConvName(data.user.name);
+      }
+    } catch (err) {
+      console.error('Failed to resolve conversation name:', err);
     }
   };
 
@@ -171,7 +194,7 @@ export default function Chat() {
 
   const openConversation = (conv) => {
     setActiveConvId(String(conv.partner_id));
-    setActiveConvName(conv.partner_name);
+    setActiveConvName(conv.partner_name || '');
     setMessages([]);
     setError('');
   };
@@ -218,7 +241,7 @@ export default function Chat() {
 
   const startConversation = (u) => {
     setActiveConvId(String(u.id));
-    setActiveConvName(u.name);
+    setActiveConvName(u.name || 'User');
     setSearchUser('');
     setSearchResults([]);
     setMessages([]);

@@ -15,9 +15,10 @@ import {
   Megaphone,
   BookOpen,
   MessageCircle,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { dashboardAPI } from '../services/api';
+import { dashboardAPI, notificationsAPI } from '../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
@@ -29,6 +30,18 @@ export default function Home() {
   const [stats, setStats] = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [announcements, setAnnouncements] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [dismissedIds, setDismissedIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('ll_dismissed_notifs') || '[]')); }
+    catch { return new Set(); }
+  });
+  const [readMessageIds, setReadMessageIds] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('ll_read_msg_notifs') || '[]')); }
+    catch { return new Set(); }
+  });
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -56,6 +69,105 @@ export default function Home() {
     fetchStats();
     fetchAnnouncements();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setNotifications([]);
+      setNotificationCount(0);
+      setIsNotificationOpen(false);
+      return;
+    }
+
+    let mounted = true;
+
+    const loadNotifications = async () => {
+      if (!mounted) return;
+      setIsLoadingNotifications(true);
+      try {
+        const data = await notificationsAPI.getMyNotifications(15);
+        if (!mounted) return;
+        setNotifications(data.notifications || []);
+        setNotificationCount(Number(data.unread_count) || 0);
+      } catch {
+        if (!mounted) return;
+        setNotifications([]);
+        setNotificationCount(0);
+      } finally {
+        if (mounted) setIsLoadingNotifications(false);
+      }
+    };
+
+    loadNotifications();
+    const intervalId = setInterval(loadNotifications, 30000);
+
+    return () => {
+      mounted = false;
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated]);
+
+  const formatNotificationTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return '';
+
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getRequestExpiryMs = (urgency) => {
+    switch (urgency) {
+      case 'critical': return 24 * 60 * 60 * 1000;           // 24 hours
+      case 'high':     return 7 * 24 * 60 * 60 * 1000;        // 1 week
+      case 'medium':   return 30 * 24 * 60 * 60 * 1000;       // 1 month
+      default:         return 30 * 24 * 60 * 60 * 1000;
+    }
+  };
+
+  const visibleNotifications = notifications.filter((item) => {
+    if (dismissedIds.has(item.id)) return false;
+    if (item.type === 'message' && readMessageIds.has(item.id)) return false;
+    if (item.type === 'request' && item.created_at) {
+      const ageMs = Date.now() - new Date(item.created_at).getTime();
+      if (ageMs > getRequestExpiryMs(item.urgency)) return false;
+    }
+    return true;
+  });
+
+  const dismissNotification = (e, itemId) => {
+    e.stopPropagation();
+    const updated = new Set(dismissedIds);
+    updated.add(itemId);
+    setDismissedIds(updated);
+    localStorage.setItem('ll_dismissed_notifs', JSON.stringify([...updated]));
+  };
+
+  const handleNotificationClick = (item) => {
+    setIsNotificationOpen(false);
+    if (item.type === 'message' && item.reference_id) {
+      const updated = new Set(readMessageIds);
+      updated.add(item.id);
+      setReadMessageIds(updated);
+      localStorage.setItem('ll_read_msg_notifs', JSON.stringify([...updated]));
+      navigate(`/chat?to=${item.reference_id}`);
+      return;
+    }
+    if (item.type === 'request' && item.reference_id) {
+      navigate(`/request/${item.reference_id}`);
+      return;
+    }
+    if (item.type === 'alert') {
+      navigate('/request-help');
+    }
+  };
 
   const copy = {
     en: {
@@ -225,6 +337,60 @@ export default function Home() {
           </button>
           {isAuthenticated ? (
             <>
+              <div className="relative">
+                <button
+                  onClick={() => setIsNotificationOpen((prev) => !prev)}
+                  className="relative hover:text-red-700 transition-all px-2"
+                  aria-label="Notifications"
+                >
+                  <Bell size={20}/>
+                  {visibleNotifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center">
+                      {visibleNotifications.length > 99 ? '99+' : visibleNotifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {isNotificationOpen && (
+                  <div className="absolute right-0 mt-2 w-[22rem] max-h-[24rem] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl z-[1100]">
+                    <div className="px-4 py-3 border-b border-slate-100">
+                      <p className="font-black text-slate-800">Notifications</p>
+                    </div>
+
+                    {isLoadingNotifications ? (
+                      <div className="p-4 text-sm text-slate-500">Loading notifications...</div>
+                    ) : visibleNotifications.length === 0 ? (
+                      <div className="p-4 text-sm text-slate-500">No notifications yet.</div>
+                    ) : (
+                      <div className="divide-y divide-slate-100">
+                        {visibleNotifications.map((item) => (
+                          <div key={item.id} className="relative group">
+                            <button
+                              onClick={() => handleNotificationClick(item)}
+                              className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-all pr-9"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <p className="text-sm font-bold text-slate-800">{item.title}</p>
+                                <span className="text-[11px] text-slate-400 shrink-0">{formatNotificationTime(item.created_at)}</span>
+                              </div>
+                              <p className="text-xs text-slate-600 mt-1 line-clamp-2">{item.body}</p>
+                              <p className="text-[11px] mt-1 uppercase tracking-wide font-semibold text-red-600">{item.type}</p>
+                            </button>
+                            <button
+                              onClick={(e) => dismissNotification(e, item.id)}
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700"
+                              aria-label="Dismiss notification"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <button onClick={() => navigate('/chat')} className="hover:text-blue-600 transition-all px-2">
                 <MessageCircle size={20}/>
               </button>

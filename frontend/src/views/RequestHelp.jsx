@@ -15,6 +15,22 @@ const provinceData = {
   'Sudurpashchim': ['Achham', 'Baitadi', 'Bajhang', 'Bajura', 'Dadeldhura', 'Darchula', 'Doti', 'Kailali', 'Kanchanpur']
 };
 
+const districtMunicipalityData = {
+  Morang: ['Biratnagar Metropolitan City', 'Sundarharaicha Municipality', 'Belbari Municipality', 'Pathari Shanishchare Municipality', 'Rangeli Municipality', 'Letang Municipality', 'Ratuwamai Municipality', 'Sunwarshi Municipality'],
+  Kathmandu: ['Kathmandu Metropolitan City', 'Kageshwori Manohara Municipality', 'Gokarneshwor Municipality', 'Tokha Municipality', 'Tarakeshwar Municipality', 'Nagarjun Municipality', 'Budhanilkantha Municipality', 'Kirtipur Municipality'],
+  Lalitpur: ['Lalitpur Metropolitan City', 'Mahalaxmi Municipality', 'Godawari Municipality'],
+  Bhaktapur: ['Bhaktapur Municipality', 'Madhyapur Thimi Municipality', 'Suryabinayak Municipality', 'Changunarayan Municipality'],
+};
+
+const municipalityHospitalData = {
+  'Sundarharaicha Municipality': ['Sundarharaicha Municipal Hospital', 'Morang Model Hospital'],
+  'Biratnagar Metropolitan City': ['Koshi Hospital', 'Birat Medical College Teaching Hospital', 'Nobel Medical College Teaching Hospital'],
+  'Belbari Municipality': ['Belbari Primary Hospital', 'Belbari Community Hospital'],
+  'Kathmandu Metropolitan City': ['Tribhuvan University Teaching Hospital', 'Bir Hospital', 'Civil Service Hospital', 'Grande International Hospital'],
+  'Lalitpur Metropolitan City': ['Patan Hospital', 'Alka Hospital', 'B and B Hospital'],
+  'Bhaktapur Municipality': ['Bhaktapur Hospital', 'Khwopa Hospital'],
+};
+
 export default function RequestHelp() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
@@ -52,6 +68,8 @@ export default function RequestHelp() {
   });
 
   const [districts, setDistricts] = useState([]);
+  const [municipalities, setMunicipalities] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -104,15 +122,35 @@ export default function RequestHelp() {
     // Update districts when province changes
     if (name === 'province') {
       setDistricts(provinceData[value] || []);
-      setFormData(prev => ({ ...prev, province: value, district: '', municipality: '' }));
+      setMunicipalities([]);
+      setHospitals([]);
+      setFormData(prev => ({ ...prev, province: value, district: '', municipality: '', hospitalName: '' }));
+    }
+
+    if (name === 'district') {
+      const mapped = districtMunicipalityData[value] || [
+        `${value} Municipality`,
+        `${value} Rural Municipality`,
+      ];
+      setMunicipalities(mapped);
+      setHospitals([]);
+      setFormData(prev => ({ ...prev, district: value, municipality: '', hospitalName: '' }));
+    }
+
+    if (name === 'municipality') {
+      const mapped = municipalityHospitalData[value] || [
+        `${value} Municipal Hospital`,
+        `${value} Community Hospital`,
+        `${value} Primary Health Center`,
+      ];
+      setHospitals(mapped);
+      setFormData(prev => ({ ...prev, municipality: value, hospitalName: '' }));
     }
   };
 
-  // Generate arrays for date dropdowns
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  // Month stays as dropdown for easier selection
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 font-sans">
@@ -183,16 +221,18 @@ export default function RequestHelp() {
               <div className="mb-6">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Date of Birth *</label>
                 <div className="grid grid-cols-3 gap-3">
-                  <select
+                  <input
+                    type="number"
                     name="dobDay"
                     value={formData.dobDay}
                     onChange={handleChange}
+                    placeholder="Day"
+                    min="1"
+                    max="31"
+                    inputMode="numeric"
                     className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
-                  >
-                    <option value="">Day</option>
-                    {days.map(day => <option key={day} value={day}>{day}</option>)}
-                  </select>
+                  />
                   
                   <select
                     name="dobMonth"
@@ -205,16 +245,18 @@ export default function RequestHelp() {
                     {months.map((month, idx) => <option key={month} value={idx + 1}>{month}</option>)}
                   </select>
                   
-                  <select
+                  <input
+                    type="number"
                     name="dobYear"
                     value={formData.dobYear}
                     onChange={handleChange}
+                    placeholder="Year"
+                    min="1900"
+                    max={currentYear}
+                    inputMode="numeric"
                     className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     required
-                  >
-                    <option value="">Year</option>
-                    {years.map(year => <option key={year} value={year}>{year}</option>)}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -258,7 +300,7 @@ export default function RequestHelp() {
               <div className="space-y-4">
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Email Address *</label>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Email Address (Optional)</label>
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                     <input
@@ -268,7 +310,6 @@ export default function RequestHelp() {
                       onChange={handleChange}
                       placeholder="ramesh.gurung@example.com"
                       className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      required
                     />
                   </div>
                 </div>
@@ -335,15 +376,19 @@ export default function RequestHelp() {
                 {/* Municipality/Rural Municipality */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">Municipality / Rural Municipality *</label>
-                  <input
-                    type="text"
+                  <select
                     name="municipality"
                     value={formData.municipality}
                     onChange={handleChange}
-                    placeholder="e.g., Kathmandu Metropolitan City"
                     className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    disabled={!formData.district}
                     required
-                  />
+                  >
+                    <option value="">Select Municipality / Rural Municipality</option>
+                    {municipalities.map(municipality => (
+                      <option key={municipality} value={municipality}>{municipality}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Ward */}
@@ -456,23 +501,27 @@ export default function RequestHelp() {
                 >
                   <option value="">Select Urgency</option>
                   <option value="critical">🔴 Critical - Immediate Need (Within 24 hours)</option>
-                  <option value="urgent">🟠 Urgent - Within a Week</option>
-                  <option value="moderate">🟡 Moderate - Within a Month</option>
+                  <option value="high">🟠 Urgent - Within a Week</option>
+                  <option value="medium">🟡 Moderate - Within a Month</option>
                 </select>
               </div>
 
               {/* Hospital Name */}
               <div className="mb-6">
                 <label className="block text-sm font-bold text-slate-700 mb-2">Hospital/Medical Center *</label>
-                <input
-                  type="text"
+                <select
                   name="hospitalName"
                   value={formData.hospitalName}
                   onChange={handleChange}
-                  placeholder="e.g., Tribhuvan University Teaching Hospital"
                   className="w-full px-4 py-3 bg-white rounded-xl border border-slate-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={!formData.municipality}
                   required
-                />
+                >
+                  <option value="">Select Hospital / Medical Center</option>
+                  {hospitals.map(hospital => (
+                    <option key={hospital} value={hospital}>{hospital}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Additional Information */}

@@ -20,6 +20,7 @@ import Chat from './views/Chat';
 import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
+import HelpRequestDetail from './views/HelpRequestDetail';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
       <Route path="/request-help" element={<RequestHelp />} />
+      <Route path="/request/:id" element={<HelpRequestDetail />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/about" element={<About />} />
       <Route 
