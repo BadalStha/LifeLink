@@ -52,12 +52,150 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
-const ensureDonationColumns = async () => {
+const ensureSchema = async () => {
+    // Create all tables if they don't exist yet (safe on every boot)
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password VARCHAR(255) NOT NULL,
+            role VARCHAR(50) NOT NULL,
+            name VARCHAR(255),
+            phone VARCHAR(20),
+            address TEXT,
+            city VARCHAR(100),
+            state VARCHAR(100),
+            country VARCHAR(100),
+            blood_type VARCHAR(10),
+            age INT,
+            medical_history TEXT,
+            donation_type VARCHAR(20),
+            donation_organ VARCHAR(50),
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS blood_donations (
+            id SERIAL PRIMARY KEY,
+            donor_id INT NOT NULL,
+            blood_type VARCHAR(10) NOT NULL,
+            units INT NOT NULL,
+            donation_date DATE NOT NULL,
+            location VARCHAR(255),
+            status VARCHAR(50) DEFAULT 'completed',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(donor_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS organ_donations (
+            id SERIAL PRIMARY KEY,
+            donor_id INT NOT NULL,
+            organ_type VARCHAR(50) NOT NULL,
+            blood_type VARCHAR(10),
+            donation_date DATE NOT NULL,
+            status VARCHAR(50) DEFAULT 'pending',
+            recipient_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(donor_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE SET NULL
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS donation_requests (
+            id SERIAL PRIMARY KEY,
+            requester_id INT NOT NULL,
+            request_type VARCHAR(20) NOT NULL,
+            blood_type VARCHAR(10),
+            organ_type VARCHAR(50),
+            units_needed INT,
+            urgency VARCHAR(20) DEFAULT 'medium',
+            reason TEXT,
+            location VARCHAR(255),
+            status VARCHAR(50) DEFAULT 'open',
+            fulfillment_date DATE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(requester_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS alerts (
+            id SERIAL PRIMARY KEY,
+            created_by INT,
+            alert_type VARCHAR(50) NOT NULL,
+            message TEXT NOT NULL,
+            urgency VARCHAR(20) DEFAULT 'medium',
+            target_audience VARCHAR(50),
+            blood_type_target VARCHAR(10),
+            organ_type_target VARCHAR(50),
+            is_read BOOLEAN DEFAULT false,
+            related_request_id INT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
+            FOREIGN KEY(related_request_id) REFERENCES donation_requests(id) ON DELETE SET NULL
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS announcements (
+            id SERIAL PRIMARY KEY,
+            created_by INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            content TEXT NOT NULL,
+            image_url TEXT,
+            is_published BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS messages (
+            id SERIAL PRIMARY KEY,
+            sender_id INT NOT NULL,
+            recipient_id INT NOT NULL,
+            content TEXT NOT NULL,
+            is_read BOOLEAN DEFAULT false,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(sender_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY(recipient_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS hospitals (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            admin_id INT NOT NULL,
+            location TEXT,
+            city VARCHAR(100),
+            phone VARCHAR(20),
+            email VARCHAR(255),
+            address TEXT,
+            is_active BOOLEAN DEFAULT true,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(admin_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    // Ensure donation columns exist on older databases that predate the schema update
     await pool.query(`
         ALTER TABLE users
-        ADD COLUMN IF NOT EXISTS donation_type VARCHAR(20),
+        ADD COLUMN IF NOT EXISTS donation_type VARCHAR(20)
+    `).catch(() => {});
+    await pool.query(`
+        ALTER TABLE users
         ADD COLUMN IF NOT EXISTS donation_organ VARCHAR(50)
-    `);
+    `).catch(() => {});
 };
 
 const ensurePasswordResetTable = async () => {
@@ -436,7 +574,7 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
-        await ensureDonationColumns();
+        await ensureSchema();
         await ensurePasswordResetTable();
         app.listen(PORT, () => {
             console.log(`Server started on http://localhost:${PORT}`);
