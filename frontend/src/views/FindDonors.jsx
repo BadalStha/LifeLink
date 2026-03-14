@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Droplet, Heart, Filter, Loader2,
-  ArrowLeft, MessageCircle, Map, List, Phone, User
+  ArrowLeft, Map, User
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -66,92 +66,24 @@ function DonorCard({ donor, onContact }) {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+      <div className="mt-4 pt-4 border-t border-slate-100">
         <button
           onClick={() => onContact(donor)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all"
+          className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all"
         >
-          <MessageCircle size={16} /> Contact Donor
-        </button>
-        <button
-          onClick={() => onContact(donor)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
-        >
-          <Phone size={16} /> Request
+          <User size={16} /> View Profile
         </button>
       </div>
     </div>
   );
 }
 
-function ContactModal({ donor, onClose, isAuthenticated, onLogin, onStartChat }) {
-  if (!donor) return null;
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white font-black text-xl mx-auto mb-3">
-            {getInitials(donor.name)}
-          </div>
-          <h3 className="text-xl font-black text-slate-900">{donor.name || 'Donor'}</h3>
-          {donor.blood_type && (
-            <span className="inline-block mt-1 px-3 py-1 bg-red-50 text-red-700 rounded-full text-sm font-bold">
-              {donor.blood_type} Blood Group
-            </span>
-          )}
-        </div>
-
-        {isAuthenticated ? (
-          <div className="space-y-4">
-            <p className="text-slate-600 text-center text-sm">
-              You can send a message to coordinate with this donor. Be respectful and include your medical details.
-            </p>
-            <button
-              onClick={() => {
-                onClose();
-                onStartChat(donor.id);
-              }}
-              className="w-full py-3 bg-red-600 text-white font-black rounded-2xl hover:bg-red-700 transition-all"
-            >
-              Open Chat with {donor.name?.split(' ')[0] || 'Donor'}
-            </button>
-            <button onClick={onClose} className="w-full py-2 text-slate-500 font-semibold hover:text-slate-700">
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <p className="text-slate-600 text-center text-sm">
-              Please log in to contact donors and submit help requests.
-            </p>
-            <button
-              onClick={onLogin}
-              className="w-full py-3 bg-red-600 text-white font-black rounded-2xl hover:bg-red-700 transition-all"
-            >
-              Login to Contact
-            </button>
-            <button onClick={onClose} className="w-full py-2 text-slate-500 font-semibold hover:text-slate-700">
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 export default function FindDonors() {
   const navigate = useNavigate();
   const [donors, setDonors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ blood_type: '', organ_type: '', city: '', name: '' });
-  const [selectedDonor, setSelectedDonor] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
 
   const isAuthenticated = !!localStorage.getItem('authToken');
@@ -167,7 +99,13 @@ export default function FindDonors() {
       params.set('ready_to_donate', 'true');
       params.set('limit', '50');
 
-      const res = await fetch(`${API_BASE_URL}/api/search?${params}`);
+      const headers = {};
+      const token = localStorage.getItem('authToken');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_BASE_URL}/api/search?${params}`, { headers });
       const data = await res.json();
       setDonors(data.users || []);
     } catch (err) {
@@ -344,7 +282,7 @@ export default function FindDonors() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {donors.map((donor) => (
-              <DonorCard key={donor.id} donor={donor} onContact={setSelectedDonor} />
+              <DonorCard key={donor.id} donor={donor} onContact={(d) => navigate(`/donor-profile/${d.id}`)} />
             ))}
           </div>
         )}
@@ -366,17 +304,6 @@ export default function FindDonors() {
           </div>
         )}
       </div>
-
-      {/* Contact Modal */}
-      {selectedDonor && (
-        <ContactModal
-          donor={selectedDonor}
-          onClose={() => setSelectedDonor(null)}
-          isAuthenticated={isAuthenticated}
-          onLogin={() => navigate('/login')}
-          onStartChat={(donorId) => navigate(`/chat?to=${donorId}`)}
-        />
-      )}
     </div>
   );
 }

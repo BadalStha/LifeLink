@@ -16,6 +16,7 @@ import Privacy from './views/Privacy';
 import NotFound from './views/NotFound';
 import About from './views/About';
 import FindDonors from './views/FindDonors';
+import DonorProfile from './views/DonorProfile';
 import Chat from './views/Chat';
 import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
@@ -32,21 +33,29 @@ export default function App() {
       <Route path="/request-help" element={<RequestHelp />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/about" element={<About />} />
-      <Route 
-        path="/find-donors" 
+      <Route
+        path="/find-donors"
         element={
           <ProtectedRoute>
             <FindDonors />
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/chat" 
+      <Route
+        path="/donor-profile/:donorId"
+        element={
+          <ProtectedRoute>
+            <DonorProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/chat"
         element={
           <ProtectedRoute>
             <Chat />
           </ProtectedRoute>
-        } 
+        }
       />
       <Route 
         path="/profile" 

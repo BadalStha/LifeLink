@@ -128,15 +128,15 @@ router.get('/users/:userId', async (req, res) => {
 });
 
 // GET /api/users/search - Search for users by blood type, role, city, organ type
-router.get('/search', async (req, res) => {
+router.get('/search', verifyToken, async (req, res) => {
     const { blood_type, role, city, organ_type, ready_to_donate, limit = 20, offset = 0, search } = req.query;
 
     try {
-        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at 
-                     FROM users 
-                     WHERE is_active = true`;
-        const params = [];
-        let paramCount = 1;
+        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at
+                     FROM users
+                     WHERE is_active = true AND id != $1`;
+        const params = [req.userId];
+        let paramCount = 2;
 
         if (ready_to_donate === 'true') {
             query += ` AND donation_type IS NOT NULL`;
@@ -208,7 +208,7 @@ router.get('/user/stats', verifyToken, async (req, res) => {
 
         // Count donation requests created by this user
         const requestsCreated = await pool.query(
-            `SELECT COUNT(*) as count FROM donation_requests WHERE user_id = $1`,
+            `SELECT COUNT(*) as count FROM donation_requests WHERE requester_id = $1`,
             [req.userId]
         );
 
