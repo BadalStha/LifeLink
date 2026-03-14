@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
-  Send,
   X,
   Heart,
   HandHeart,
@@ -12,9 +11,15 @@ import {
   Activity,
   PhoneCall,
   Loader2,
+  Search,
+  Megaphone,
+  BookOpen,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI } from '../services/api';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -23,6 +28,7 @@ export default function Home() {
   const [language, setLanguage] = useState('en');
   const [stats, setStats] = useState(null);
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [announcements, setAnnouncements] = useState([]);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -31,24 +37,31 @@ export default function Home() {
         setStats(data.stats);
       } catch (error) {
         console.error('Failed to load stats:', error);
-        setStats({
-          total_donors: 0,
-          active_requests: 0,
-          districts_count: 0,
-        });
+        setStats({ total_donors: 0, active_requests: 0, districts_count: 0 });
       } finally {
         setIsLoadingStats(false);
       }
     };
 
+    const fetchAnnouncements = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/announcements?limit=4`);
+        const data = await res.json();
+        setAnnouncements(data.announcements || []);
+      } catch {
+        setAnnouncements([]);
+      }
+    };
+
     fetchStats();
+    fetchAnnouncements();
   }, []);
 
   const copy = {
     en: {
       topBar: 'Nepal Emergency Health Support Network | 24/7 Coordinated Donor Matching',
       tagline: 'Jeevan Ko Lagi Sahayog',
-      becomeDonor: 'Become a Donor',
+      register: 'Register',
       requestHelp: 'Request Help',
       myProfile: 'My Profile',
       login: 'Login',
@@ -97,6 +110,8 @@ export default function Home() {
       broadcastDesc: 'Notify all matching donors within your area immediately.',
       requestHelpDesc: 'Create an account to submit your emergency request and notify nearby donors instantly.',
       sendAlert: 'Send Alert Now',
+      submitRequest: 'Submit a Request',
+      submitRequestDesc: 'Submit your emergency request and connect with nearby donors as quickly as possible.',
       registerAndHelp: 'Register & Request Help',
       step: 'Step',
       english: 'EN',
@@ -105,7 +120,7 @@ export default function Home() {
     np: {
       topBar: 'नेपाल आपतकालीन स्वास्थ्य सहयोग सञ्जाल | २४/७ समन्वित दाता मिलान',
       tagline: 'जीवनका लागि सहयोग',
-      becomeDonor: 'दाता बन्नुहोस्',
+      register: 'दर्ता',
       requestHelp: 'सहायता माग्नुहोस्',
       myProfile: 'मेरो प्रोफाइल',
       login: 'लगइन',
@@ -154,6 +169,8 @@ export default function Home() {
       broadcastDesc: 'तपाईंको क्षेत्रका मिल्दोजुल्दो दातालाई तुरुन्त जानकारी पठाउनुहोस्।',
       requestHelpDesc: 'नजिकका दातालाई सूचना पठाउन आपतकालीन अनुरोधका लागि खाता बनाउनुहोस्।',
       sendAlert: 'अहिले नै अलर्ट पठाउनुहोस्',
+      submitRequest: 'अनुरोध पेश गर्नुहोस्',
+      submitRequestDesc: 'आफ्नो आपतकालीन अनुरोध पेश गर्नुहोस् र नजिकका दातासँग सकेसम्म छिटो सम्पर्क गर्नुहोस्।',
       registerAndHelp: 'दर्ता गर्नुहोस् र सहायता माग्नुहोस्',
       step: 'चरण',
       english: 'EN',
@@ -179,17 +196,25 @@ export default function Home() {
           <p className="text-xs text-slate-500 font-semibold tracking-wide">{t.tagline}</p>
         </div>
         <div className="flex flex-wrap justify-center items-center gap-3 font-bold text-slate-600">
-          <button 
-            onClick={() => navigate('/register?type=donor')} 
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-all border border-green-200"
-          >
-            <Heart size={18}/> {t.becomeDonor}
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => navigate('/find-donors')}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all border border-blue-200"
+            >
+              <Search size={18}/> Find Donors
+            </button>
+          )}
           <button 
             onClick={() => setShowEmergencyModal(true)}
             className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-200"
           >
             <HandHeart size={18}/> {t.requestHelp}
+          </button>
+          <button
+            onClick={() => navigate('/about')}
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all border border-slate-200"
+          >
+            <BookOpen size={18}/> About
           </button>
           <button
             onClick={() => setLanguage((prev) => (prev === 'en' ? 'np' : 'en'))}
@@ -199,9 +224,22 @@ export default function Home() {
             {language === 'en' ? `${t.nepali} | ${t.english}` : `${t.english} | ${t.nepali}`}
           </button>
           {isAuthenticated ? (
-            <button onClick={() => navigate('/profile')} className="hover:text-red-700 transition-all px-2">{t.myProfile}</button>
+            <>
+              <button onClick={() => navigate('/chat')} className="hover:text-blue-600 transition-all px-2">
+                <MessageCircle size={20}/>
+              </button>
+              <button onClick={() => navigate('/profile')} className="hover:text-red-700 transition-all px-2">{t.myProfile}</button>
+            </>
           ) : (
-            <button onClick={() => navigate('/login')} className="hover:text-red-700 transition-all px-2">{t.login}</button>
+            <>
+              <button
+                onClick={() => navigate('/register')}
+                className="px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-all border border-green-200"
+              >
+                {t.register}
+              </button>
+              <button onClick={() => navigate('/login')} className="hover:text-red-700 transition-all px-2">{t.login}</button>
+            </>
           )}
         </div>
       </nav>
@@ -220,22 +258,6 @@ export default function Home() {
             <p className="mt-5 text-slate-600 text-base md:text-lg leading-relaxed font-medium max-w-xl">
               {t.heroDesc}
             </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <button
-                onClick={() => navigate('/register?type=donor')}
-                className="px-5 py-3 rounded-2xl bg-red-700 text-white font-extrabold hover:bg-red-800 transition-all"
-              >
-                {t.joinDonor}
-              </button>
-              <button
-                onClick={() => navigate('/request-help')}
-                className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-extrabold hover:bg-black transition-all"
-              >
-                {t.registerHelp}
-              </button>
-            </div>
-
             <div className="grid grid-cols-3 gap-3 mt-8">
               {isLoadingStats ? (
                 <div className="col-span-3 flex justify-center py-4">
@@ -369,6 +391,37 @@ export default function Home() {
         </div>
       </section>
 
+      {/* --- ANNOUNCEMENTS / CAMPAIGNS --- */}
+      {announcements.length > 0 && (
+        <section className="px-4 md:px-10 pb-10">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Megaphone className="text-orange-600" size={22} />
+                <h3 className="text-2xl font-black text-slate-900">Campaigns & Announcements</h3>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              {announcements.map((ann) => (
+                <div key={ann.id} className="bg-white border-l-4 border-orange-400 rounded-2xl p-5 shadow-sm flex gap-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Megaphone className="text-orange-600" size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 mb-1">{ann.title}</h4>
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">{ann.content}</p>
+                    <p className="text-slate-400 text-xs mt-2">
+                      {new Date(ann.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      {ann.author_name ? ` — ${ann.author_name}` : ''}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="px-4 md:px-10 pb-16">
         <div className="max-w-7xl mx-auto bg-red-700 rounded-[32px] p-7 md:p-9 text-white shadow-xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
@@ -393,28 +446,22 @@ export default function Home() {
             <button onClick={() => setShowEmergencyModal(false)} className="absolute right-8 top-8 text-slate-400 hover:text-slate-600"><X/></button>
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6"><AlertTriangle size={32}/></div>
             <h3 className="text-3xl font-black text-slate-900 mb-2">
-              {isAuthenticated ? t.broadcastAlert : t.requestHelpModal}
+              {t.requestHelpModal}
             </h3>
             <p className="text-slate-500 font-medium mb-8">
               {isAuthenticated 
-                ? t.broadcastDesc
+                ? t.submitRequestDesc
                 : t.requestHelpDesc}
             </p>
-            {isAuthenticated ? (
-              <button 
-                onClick={() => { alert("Broadcast Sent!"); setShowEmergencyModal(false); }}
-                className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
-              >
-                <Send size={20}/> {t.sendAlert}
-              </button>
-            ) : (
-              <button 
-                onClick={() => navigate('/request-help')}
-                className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
-              >
-                <HandHeart size={20}/> {t.registerAndHelp}
-              </button>
-            )}
+            <button 
+              onClick={() => {
+                setShowEmergencyModal(false);
+                navigate('/request-help');
+              }}
+              className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
+            >
+              <HandHeart size={20}/> {t.submitRequest}
+            </button>
           </div>
         </div>
       )}

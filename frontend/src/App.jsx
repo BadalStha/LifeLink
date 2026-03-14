@@ -14,15 +14,40 @@ import Register from './views/Register';
 import RequestHelp from './views/RequestHelp';
 import Privacy from './views/Privacy';
 import NotFound from './views/NotFound';
+import About from './views/About';
+import FindDonors from './views/FindDonors';
+import Chat from './views/Chat';
+import DonationPreferences from './views/DonationPreferences';
+import ForgotPassword from './views/ForgotPassword';
+import ResetPassword from './views/ResetPassword';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Auth />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/register" element={<Register />} />
       <Route path="/request-help" element={<RequestHelp />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/about" element={<About />} />
+      <Route 
+        path="/find-donors" 
+        element={
+          <ProtectedRoute>
+            <FindDonors />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/chat" 
+        element={
+          <ProtectedRoute>
+            <Chat />
+          </ProtectedRoute>
+        } 
+      />
       <Route 
         path="/profile" 
         element={
@@ -30,6 +55,14 @@ export default function App() {
             <Profile />
           </ProtectedRoute>
         } 
+      />
+      <Route
+        path="/donation-preferences"
+        element={
+          <ProtectedRoute>
+            <DonationPreferences />
+          </ProtectedRoute>
+        }
       />
       <Route 
         path="/settings" 

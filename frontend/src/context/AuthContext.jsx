@@ -13,6 +13,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   // Check if user is logged in on mount
   useEffect(() => {
@@ -27,11 +28,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('userData');
       }
     }
+    setIsAuthLoading(false);
   }, []);
 
   const login = (userData, token) => {
     setIsAuthenticated(true);
     setUser(userData);
+    setIsAuthLoading(false);
     localStorage.setItem('authToken', token);
     localStorage.setItem('userData', JSON.stringify(userData));
   };
@@ -39,12 +42,13 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setIsAuthenticated(false);
     setUser(null);
+    setIsAuthLoading(false);
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, user, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isAuthLoading, user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
