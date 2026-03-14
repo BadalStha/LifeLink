@@ -16,6 +16,11 @@ import {
   BookOpen,
   MessageCircle,
   Bell,
+  ArrowRight,
+  CheckCircle2,
+  Droplets,
+  MapPin,
+  ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI, notificationsAPI } from '../services/api';
@@ -110,7 +115,6 @@ export default function Home() {
     if (!dateStr) return '';
     const date = new Date(dateStr);
     if (Number.isNaN(date.getTime())) return '';
-
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / (1000 * 60));
@@ -125,9 +129,9 @@ export default function Home() {
 
   const getRequestExpiryMs = (urgency) => {
     switch (urgency) {
-      case 'critical': return 24 * 60 * 60 * 1000;           // 24 hours
-      case 'high':     return 7 * 24 * 60 * 60 * 1000;        // 1 week
-      case 'medium':   return 30 * 24 * 60 * 60 * 1000;       // 1 month
+      case 'critical': return 24 * 60 * 60 * 1000;
+      case 'high':     return 7 * 24 * 60 * 60 * 1000;
+      case 'medium':   return 30 * 24 * 60 * 60 * 1000;
       default:         return 30 * 24 * 60 * 60 * 1000;
     }
   };
@@ -164,9 +168,7 @@ export default function Home() {
       navigate(`/request/${item.reference_id}`);
       return;
     }
-    if (item.type === 'alert') {
-      navigate('/request-help');
-    }
+    if (item.type === 'alert') navigate('/request-help');
   };
 
   const copy = {
@@ -178,25 +180,25 @@ export default function Home() {
       myProfile: 'My Profile',
       login: 'Login',
       trusted: 'Trusted Nepal Health Community',
-      heroLine1: 'Donate Blood.',
+      heroLabel: 'Nepal\'s Blood & Organ Donation Network',
+      heroLine1: 'Donate Blood & Organs.',
       heroLine2: 'Save Lives Across Nepal.',
-      heroDesc: 'LifeLink helps families find verified blood and organ support quickly, with locality-based matching, clear emergency pathways, and community-first coordination.',
-      joinDonor: 'Join as Donor',
-      registerHelp: 'Register for Help',
-      districtReach: 'District reach',
-      urgentAlerts: 'Urgent alerts',
-      activeSupporters: 'Active supporters',
+      heroDesc: 'LifeLink connects verified blood and organ donors with families in need — using locality-based matching, emergency pathways, and community-first coordination across all 77 districts.',
+      joinNow: 'Join Now',
+      districtReach: 'Districts Covered',
+      urgentAlerts: 'Active Requests',
+      activeSupporters: 'Registered Donors',
       rapidTitle: 'Rapid Emergency Path',
       rapidDesc: 'Urgent requests are prioritized so nearby verified donors can be notified immediately.',
       communityTitle: 'Community-Led Network',
-      communityDesc: "Built for Nepal's cities and rural municipalities, with people helping people through verified profiles.",
-      supportTitle: 'Blood and Organ Support',
+      communityDesc: "Built for Nepal's cities and rural municipalities — people helping people through verified profiles.",
+      supportTitle: 'Blood & Organ Support',
       supportDesc: 'From routine blood support to urgent transplant coordination, requests are structured clearly for fast action.',
       howItWorks: 'How LifeLink Works',
       step1Title: 'Register as Donor or Receiver',
-      step1Desc: 'Complete details with district and municipality to support local matching.',
+      step1Desc: 'Complete your profile with district and municipality to enable local matching.',
       step2Title: 'Submit Need or Availability',
-      step2Desc: 'Medical requirement, urgency, and location data help prioritize response quickly.',
+      step2Desc: 'Medical requirement, urgency level, and location data help prioritize response quickly.',
       step3Title: 'Coordinate and Save Lives',
       step3Desc: 'Matched users connect and proceed with local health facilities and donation protocols.',
       whyTag: 'Why Donation Is Necessary',
@@ -228,6 +230,10 @@ export default function Home() {
       step: 'Step',
       english: 'EN',
       nepali: 'नेपाली',
+      footerTagline: 'Connecting donors and recipients across Nepal.',
+      footerLinks: 'Quick Links',
+      footerContact: 'Support',
+      copyright: '© 2025 LifeLink Nepal. Saving lives together.',
     },
     np: {
       topBar: 'नेपाल आपतकालीन स्वास्थ्य सहयोग सञ्जाल | २४/७ समन्वित दाता मिलान',
@@ -237,14 +243,14 @@ export default function Home() {
       myProfile: 'मेरो प्रोफाइल',
       login: 'लगइन',
       trusted: 'विश्वसनीय नेपाली स्वास्थ्य समुदाय',
-      heroLine1: 'रगत दान गर्नुहोस्।',
+      heroLabel: 'नेपालको रगत र अंग दान सञ्जाल',
+      heroLine1: 'रगत र अंग दान गर्नुहोस्।',
       heroLine2: 'नेपालभरि जीवन बचाउनुहोस्।',
       heroDesc: 'LifeLink ले परिवारलाई छिटो प्रमाणित रगत तथा अंग सहयोग पाउन मद्दत गर्छ, स्थानीय मिलान, स्पष्ट आपतकालीन प्रक्रिया र समुदायमुखी समन्वयसहित।',
-      joinDonor: 'दाता रूपमा सहभागी हुनुहोस्',
-      registerHelp: 'सहायताका लागि दर्ता गर्नुहोस्',
+      joinNow: 'अहिले जोडिनुहोस्',
       districtReach: 'जिल्ला पहुँच',
-      urgentAlerts: 'आपतकालीन सूचना',
-      activeSupporters: 'सक्रिय सहयोगी',
+      urgentAlerts: 'सक्रिय अनुरोध',
+      activeSupporters: 'दर्ता दाताहरू',
       rapidTitle: 'द्रुत आपतकालीन प्रक्रिया',
       rapidDesc: 'आपतकालीन अनुरोधलाई प्राथमिकता दिइन्छ ताकि नजिकका प्रमाणित दातालाई तुरुन्त जानकारी दिन सकियोस्।',
       communityTitle: 'समुदाय-नेतृत्व सञ्जाल',
@@ -287,6 +293,10 @@ export default function Home() {
       step: 'चरण',
       english: 'EN',
       nepali: 'नेपाली',
+      footerTagline: 'नेपालभर दाता र प्राप्तकर्तालाई जोड्दै।',
+      footerLinks: 'द्रुत लिंकहरू',
+      footerContact: 'सहयोग',
+      copyright: '© २०२५ LifeLink Nepal. सँगै जीवन बचाउँदै।',
     },
   };
 
@@ -294,75 +304,75 @@ export default function Home() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-red-50 via-white to-slate-100"
+      className="min-h-screen bg-white"
       style={{ fontFamily: "'Plus Jakarta Sans', 'Noto Sans Devanagari', sans-serif" }}
     >
-      <div className="bg-slate-900 text-slate-100 text-xs sm:text-sm px-4 py-2 text-center tracking-wide">
+      {/* --- TOP BAR --- */}
+      <div className="bg-red-700 text-red-50 text-xs px-4 py-2 text-center tracking-wide font-medium">
         {t.topBar}
       </div>
 
       {/* --- NAVBAR --- */}
-      <nav className="flex flex-col md:flex-row gap-4 md:gap-0 justify-between items-center px-5 md:px-10 py-5 bg-white/90 backdrop-blur sticky top-0 z-[1000] border-b border-slate-200">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black text-red-700 cursor-pointer leading-none" onClick={() => navigate('/')}>LifeLink</h1>
-          <p className="text-xs text-slate-500 font-semibold tracking-wide">{t.tagline}</p>
+      <nav className="flex flex-col md:flex-row gap-3 md:gap-0 justify-between items-center px-5 md:px-12 py-4 bg-white sticky top-0 z-[1000] border-b border-slate-100 shadow-sm">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-9 h-9 bg-red-600 rounded-xl flex items-center justify-center shadow-sm">
+            <Droplets size={20} className="text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900 leading-none">LifeLink</h1>
+            <p className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">{t.tagline}</p>
+          </div>
         </div>
-        <div className="flex flex-wrap justify-center items-center gap-3 font-bold text-slate-600">
+
+        <div className="flex flex-wrap justify-center items-center gap-2 text-sm font-semibold text-slate-600">
           {isAuthenticated && (
             <button
               onClick={() => navigate('/find-donors')}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all border border-blue-200"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-blue-700 hover:bg-blue-50 transition-all"
             >
-              <Search size={18}/> Find Donors
+              <Search size={15}/> Find Donors
             </button>
           )}
-          <button 
-            onClick={() => setShowEmergencyModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-600 hover:bg-red-100 transition-all border border-red-200"
-          >
-            <HandHeart size={18}/> {t.requestHelp}
-          </button>
           <button
             onClick={() => navigate('/about')}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all border border-slate-200"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition-all"
           >
-            <BookOpen size={18}/> About
+            <BookOpen size={15}/> About
           </button>
           <button
             onClick={() => setLanguage((prev) => (prev === 'en' ? 'np' : 'en'))}
-            className="px-4 py-2 rounded-full border border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all"
-            aria-label="Switch language"
+            className="px-3.5 py-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-xs"
           >
-            {language === 'en' ? `${t.nepali} | ${t.english}` : `${t.english} | ${t.nepali}`}
+            {language === 'en' ? `नेपाली` : `English`}
           </button>
+
           {isAuthenticated ? (
             <>
               <div className="relative">
                 <button
                   onClick={() => setIsNotificationOpen((prev) => !prev)}
-                  className="relative hover:text-red-700 transition-all px-2"
+                  className="relative p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600"
                   aria-label="Notifications"
                 >
-                  <Bell size={20}/>
+                  <Bell size={18}/>
                   {visibleNotifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-red-600 text-white text-[10px] font-black flex items-center justify-center">
+                    <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[9px] font-black flex items-center justify-center">
                       {visibleNotifications.length > 99 ? '99+' : visibleNotifications.length}
                     </span>
                   )}
                 </button>
-
                 {isNotificationOpen && (
-                  <div className="absolute right-0 mt-2 w-[22rem] max-h-[24rem] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl z-[1100]">
-                    <div className="px-4 py-3 border-b border-slate-100">
-                      <p className="font-black text-slate-800">Notifications</p>
+                  <div className="absolute right-0 mt-2 w-[22rem] max-h-[24rem] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl z-[1100]">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <p className="font-bold text-slate-800 text-sm">Notifications</p>
+                      <button onClick={() => setIsNotificationOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={14}/></button>
                     </div>
-
                     {isLoadingNotifications ? (
-                      <div className="p-4 text-sm text-slate-500">Loading notifications...</div>
+                      <div className="p-6 flex justify-center"><Loader2 className="animate-spin text-slate-400" size={20}/></div>
                     ) : visibleNotifications.length === 0 ? (
-                      <div className="p-4 text-sm text-slate-500">No notifications yet.</div>
+                      <div className="p-6 text-center text-sm text-slate-400">No notifications yet.</div>
                     ) : (
-                      <div className="divide-y divide-slate-100">
+                      <div className="divide-y divide-slate-50">
                         {visibleNotifications.map((item) => (
                           <div key={item.id} className="relative group">
                             <button
@@ -370,18 +380,18 @@ export default function Home() {
                               className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-all pr-9"
                             >
                               <div className="flex items-start justify-between gap-3">
-                                <p className="text-sm font-bold text-slate-800">{item.title}</p>
-                                <span className="text-[11px] text-slate-400 shrink-0">{formatNotificationTime(item.created_at)}</span>
+                                <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                                <span className="text-[10px] text-slate-400 shrink-0">{formatNotificationTime(item.created_at)}</span>
                               </div>
-                              <p className="text-xs text-slate-600 mt-1 line-clamp-2">{item.body}</p>
-                              <p className="text-[11px] mt-1 uppercase tracking-wide font-semibold text-red-600">{item.type}</p>
+                              <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{item.body}</p>
+                              <span className="inline-block text-[10px] mt-1 px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-semibold uppercase tracking-wide">{item.type}</span>
                             </button>
                             <button
                               onClick={(e) => dismissNotification(e, item.id)}
-                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 text-slate-400 hover:text-slate-700"
-                              aria-label="Dismiss notification"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 text-slate-400"
+                              aria-label="Dismiss"
                             >
-                              <X size={13} />
+                              <X size={12} />
                             </button>
                           </div>
                         ))}
@@ -390,192 +400,306 @@ export default function Home() {
                   </div>
                 )}
               </div>
-
-              <button onClick={() => navigate('/chat')} className="hover:text-blue-600 transition-all px-2">
-                <MessageCircle size={20}/>
+              <button onClick={() => navigate('/chat')} className="p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600">
+                <MessageCircle size={18}/>
               </button>
-              <button onClick={() => navigate('/profile')} className="hover:text-red-700 transition-all px-2">{t.myProfile}</button>
+              <button
+                onClick={() => navigate('/profile')}
+                className="px-3.5 py-2 rounded-lg hover:bg-slate-50 transition-all text-slate-700"
+              >
+                {t.myProfile}
+              </button>
             </>
           ) : (
             <>
               <button
+                onClick={() => navigate('/login')}
+                className="px-3.5 py-2 rounded-lg text-slate-600 hover:bg-slate-50 transition-all"
+              >
+                {t.login}
+              </button>
+              <button
                 onClick={() => navigate('/register')}
-                className="px-4 py-2 rounded-full bg-green-50 text-green-700 hover:bg-green-100 transition-all border border-green-200"
+                className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-semibold shadow-sm"
               >
                 {t.register}
               </button>
-              <button onClick={() => navigate('/login')} className="hover:text-red-700 transition-all px-2">{t.login}</button>
             </>
           )}
+
+          <button
+            onClick={() => setShowEmergencyModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-semibold shadow-sm"
+          >
+            <HandHeart size={15}/> {t.requestHelp}
+          </button>
         </div>
       </nav>
 
-      {/* --- HERO SECTION --- */}
-      <header className="px-4 md:px-8 pt-12 md:pt-16 pb-10">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white border border-slate-200 rounded-[32px] p-7 md:p-10 shadow-xl">
-            <p className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-extrabold tracking-wider uppercase mb-5">
-              <ShieldCheck size={14} /> {t.trusted}
-            </p>
-            <h2 className="text-4xl md:text-6xl font-black text-slate-900 leading-[1.05] tracking-tight">
+      {/* ==================== HERO SECTION ==================== */}
+      <header className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-red-950 to-slate-900">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10"
+          style={{backgroundImage: 'radial-gradient(circle at 20% 50%, #ef4444 0%, transparent 50%), radial-gradient(circle at 80% 20%, #dc2626 0%, transparent 40%)'}}
+        />
+
+        <div className="relative max-w-7xl mx-auto px-5 md:px-12 py-16 md:py-24 grid md:grid-cols-2 gap-10 items-center">
+          {/* Left */}
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-bold tracking-widest uppercase mb-6">
+              <ShieldCheck size={13}/> {t.heroLabel}
+            </div>
+            <h2 className="text-5xl md:text-6xl font-black text-white leading-[1.05] tracking-tight">
               {t.heroLine1}
-              <span className="text-red-700 block">{t.heroLine2}</span>
+              <span className="text-red-400 block mt-1">{t.heroLine2}</span>
             </h2>
-            <p className="mt-5 text-slate-600 text-base md:text-lg leading-relaxed font-medium max-w-xl">
+            <p className="mt-5 text-slate-300 text-base md:text-lg leading-relaxed max-w-lg">
               {t.heroDesc}
             </p>
-            <div className="grid grid-cols-3 gap-3 mt-8">
-              {isLoadingStats ? (
-                <div className="col-span-3 flex justify-center py-4">
-                  <Loader2 className="animate-spin text-slate-400" size={24} />
+
+            {!isAuthenticated && (
+              <div className="flex flex-wrap gap-3 mt-8">
+                <button
+                  onClick={() => navigate('/register')}
+                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-500 transition-all shadow-lg shadow-red-900/40"
+                >
+                  <ArrowRight size={17}/> {t.joinNow}
+                </button>
+              </div>
+            )}
+
+            {/* Trust badges */}
+            <div className="flex items-center gap-5 mt-8 pt-6 border-t border-white/10">
+              {[
+                { icon: <CheckCircle2 size={14}/>, text: 'Verified Donors' },
+                { icon: <MapPin size={14}/>, text: 'All 77 Districts' },
+                { icon: <Clock3 size={14}/>, text: '24/7 Support' },
+              ].map((badge) => (
+                <div key={badge.text} className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                  <span className="text-green-400">{badge.icon}</span>
+                  {badge.text}
                 </div>
-              ) : (
-                <>
-                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-3">
-                    <p className="text-lg font-black text-emerald-700">{stats?.districts_count || 0}</p>
-                    <p className="text-xs font-semibold text-slate-600">{t.districtReach}</p>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-2xl p-3">
-                    <p className="text-lg font-black text-red-700">{stats?.active_requests || 0}</p>
-                    <p className="text-xs font-semibold text-slate-600">{t.urgentAlerts}</p>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-2xl p-3">
-                    <p className="text-lg font-black text-blue-700">{stats?.total_donors?.toLocaleString() || 0}</p>
-                    <p className="text-xs font-semibold text-slate-600">{t.activeSupporters}</p>
-                  </div>
-                </>
-              )}
+              ))}
             </div>
+          </div>
+
+          {/* Right — Hero Image */}
+          <div className="relative hidden md:block">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10">
+              <img
+                src="https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=900&q=80"
+                alt="Blood donation — saving lives"
+                className="w-full h-[420px] object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"/>
+              <div className="absolute bottom-5 left-5 right-5">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4">
+                  <p className="text-white font-black text-sm">Every drop matters.</p>
+                  <p className="text-slate-300 text-xs mt-0.5">One donation can save up to 3 lives.</p>
+                </div>
+              </div>
+            </div>
+            {/* Floating stat badge */}
+            <div className="absolute -top-4 -right-4 bg-red-600 text-white rounded-2xl p-4 shadow-xl">
+              <p className="text-2xl font-black leading-none">77</p>
+              <p className="text-red-200 text-xs mt-0.5 font-semibold">Districts</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats bar */}
+        <div className="relative border-t border-white/10 bg-black/20">
+          <div className="max-w-7xl mx-auto px-5 md:px-12 py-6 grid grid-cols-3 gap-4">
+            {isLoadingStats ? (
+              <div className="col-span-3 flex justify-center py-2">
+                <Loader2 className="animate-spin text-white/40" size={22}/>
+              </div>
+            ) : (
+              <>
+                <div className="text-center">
+                  <p className="text-3xl font-black text-white">{stats?.districts_count || 0}</p>
+                  <p className="text-slate-400 text-xs mt-0.5 font-medium">{t.districtReach}</p>
+                </div>
+                <div className="text-center border-x border-white/10">
+                  <p className="text-3xl font-black text-red-400">{stats?.active_requests || 0}</p>
+                  <p className="text-slate-400 text-xs mt-0.5 font-medium">{t.urgentAlerts}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-3xl font-black text-emerald-400">{stats?.total_donors?.toLocaleString() || 0}</p>
+                  <p className="text-slate-400 text-xs mt-0.5 font-medium">{t.activeSupporters}</p>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </header>
 
-      {/* --- SERVICE HIGHLIGHTS --- */}
-      <section className="px-4 md:px-10 pb-8">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <div className="w-11 h-11 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center mb-4">
-              <Clock3 size={22} />
-            </div>
-            <h4 className="text-xl font-black text-slate-900 mb-2">{t.rapidTitle}</h4>
-            <p className="text-slate-600 font-medium">{t.rapidDesc}</p>
+      {/* ==================== SERVICE HIGHLIGHTS ==================== */}
+      <section className="py-16 px-5 md:px-12 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-red-600 font-bold text-xs uppercase tracking-widest mb-2">What We Offer</p>
+            <h3 className="text-3xl font-black text-slate-900">Built for Nepal's healthcare needs</h3>
           </div>
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <div className="w-11 h-11 rounded-2xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
-              <Users size={22} />
-            </div>
-            <h4 className="text-xl font-black text-slate-900 mb-2">{t.communityTitle}</h4>
-            <p className="text-slate-600 font-medium">{t.communityDesc}</p>
-          </div>
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-            <div className="w-11 h-11 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-4">
-              <Activity size={22} />
-            </div>
-            <h4 className="text-xl font-black text-slate-900 mb-2">{t.supportTitle}</h4>
-            <p className="text-slate-600 font-medium">{t.supportDesc}</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: <Clock3 size={24}/>,
+                bg: 'bg-red-50', iconColor: 'text-red-600',
+                title: t.rapidTitle, desc: t.rapidDesc,
+                accent: 'border-t-red-500',
+              },
+              {
+                icon: <Users size={24}/>,
+                bg: 'bg-blue-50', iconColor: 'text-blue-600',
+                title: t.communityTitle, desc: t.communityDesc,
+                accent: 'border-t-blue-500',
+              },
+              {
+                icon: <Activity size={24}/>,
+                bg: 'bg-emerald-50', iconColor: 'text-emerald-600',
+                title: t.supportTitle, desc: t.supportDesc,
+                accent: 'border-t-emerald-500',
+              },
+            ].map((card) => (
+              <div key={card.title} className={`bg-white rounded-2xl p-7 shadow-sm border border-slate-100 border-t-4 ${card.accent} hover:shadow-md transition-shadow`}>
+                <div className={`w-12 h-12 rounded-2xl ${card.bg} ${card.iconColor} flex items-center justify-center mb-5`}>
+                  {card.icon}
+                </div>
+                <h4 className="text-lg font-black text-slate-900 mb-2">{card.title}</h4>
+                <p className="text-slate-500 text-sm leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* --- HOW IT WORKS --- */}
-      <section className="px-4 md:px-10 pb-12">
-        <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-[32px] p-7 md:p-10">
-          <h3 className="text-3xl font-black text-slate-900 mb-6">{t.howItWorks}</h3>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-red-700 text-sm font-black mb-2">{t.step} 1</p>
-              <h4 className="font-black text-slate-900 mb-2">{t.step1Title}</h4>
-              <p className="text-slate-600 font-medium text-sm">{t.step1Desc}</p>
+      {/* ==================== HOW IT WORKS ==================== */}
+      <section className="py-16 px-5 md:px-12 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-red-600 font-bold text-xs uppercase tracking-widest mb-2">Process</p>
+            <h3 className="text-3xl font-black text-slate-900">{t.howItWorks}</h3>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 relative">
+            {/* Connector line */}
+            <div className="hidden md:block absolute top-10 left-[33%] right-[33%] h-0.5 bg-gradient-to-r from-red-200 to-red-200 z-0"/>
+            {[
+              { num: '01', title: t.step1Title, desc: t.step1Desc, icon: <Users size={22}/> },
+              { num: '02', title: t.step2Title, desc: t.step2Desc, icon: <Activity size={22}/> },
+              { num: '03', title: t.step3Title, desc: t.step3Desc, icon: <Heart size={22}/> },
+            ].map((step, idx) => (
+              <div key={step.num} className="relative z-10 flex flex-col items-center text-center">
+                <div className="w-20 h-20 rounded-full bg-red-600 text-white flex items-center justify-center mb-5 shadow-lg shadow-red-200 text-2xl font-black">
+                  {step.num}
+                </div>
+                <h4 className="font-black text-slate-900 text-lg mb-2">{step.title}</h4>
+                <p className="text-slate-500 text-sm leading-relaxed max-w-xs">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+          {!isAuthenticated && (
+            <div className="mt-10 text-center">
+              <button
+                onClick={() => navigate('/register')}
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 transition-all shadow-sm"
+              >
+                Get Started <ArrowRight size={16}/>
+              </button>
             </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-red-700 text-sm font-black mb-2">{t.step} 2</p>
-              <h4 className="font-black text-slate-900 mb-2">{t.step2Title}</h4>
-              <p className="text-slate-600 font-medium text-sm">{t.step2Desc}</p>
+          )}
+        </div>
+      </section>
+
+      {/* ==================== WHY DONATION MATTERS ==================== */}
+      <section className="py-16 px-5 md:px-12 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-10 items-center mb-12">
+            {/* Image */}
+            <div className="relative rounded-3xl overflow-hidden shadow-xl order-2 md:order-1">
+              <img
+                src="https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&w=900&q=80"
+                alt="Medical care and donation"
+                className="w-full h-72 md:h-96 object-cover"
+                loading="lazy"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 to-transparent"/>
+              <div className="absolute bottom-5 left-5">
+                <div className="bg-white/10 backdrop-blur border border-white/20 rounded-xl px-4 py-3">
+                  <p className="text-white font-bold text-sm">Nepal Blood Network</p>
+                  <p className="text-slate-300 text-xs mt-0.5">Saving lives since 2024</p>
+                </div>
+              </div>
             </div>
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <p className="text-red-700 text-sm font-black mb-2">{t.step} 3</p>
-              <h4 className="font-black text-slate-900 mb-2">{t.step3Title}</h4>
-              <p className="text-slate-600 font-medium text-sm">{t.step3Desc}</p>
+            {/* Text */}
+            <div className="order-1 md:order-2">
+              <p className="text-red-600 font-bold text-xs uppercase tracking-widest mb-3">{t.whyTag}</p>
+              <h3 className="text-3xl md:text-4xl font-black text-slate-900 mb-4 leading-tight">{t.whyTitle}</h3>
+              <p className="text-slate-600 leading-relaxed mb-5">{t.whyDesc}</p>
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+                <p className="text-red-700 font-bold text-sm uppercase tracking-wide mb-1">{t.priorityTag}</p>
+                <p className="text-slate-600 text-sm">{t.priorityDesc}</p>
+              </div>
             </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5">
+            {[
+              { icon: <AlertTriangle size={20}/>, bg: 'bg-red-50', color: 'text-red-600', title: t.emergencyNeedTitle, desc: t.emergencyNeedDesc },
+              { icon: <Users size={20}/>, bg: 'bg-blue-50', color: 'text-blue-600', title: t.communitySaveTitle, desc: t.communitySaveDesc },
+              { icon: <Heart size={20}/>, bg: 'bg-emerald-50', color: 'text-emerald-600', title: t.impactTitle, desc: t.impactDesc },
+            ].map((card) => (
+              <div key={card.title} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className={`w-11 h-11 rounded-xl ${card.bg} ${card.color} flex items-center justify-center mb-4`}>
+                  {card.icon}
+                </div>
+                <h4 className="font-black text-slate-900 mb-2">{card.title}</h4>
+                <p className="text-slate-500 text-sm leading-relaxed">{card.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 grid md:grid-cols-2 gap-5">
+            {[
+              { title: t.whoDonateTitle, desc: t.whoDonateDesc },
+              { title: t.whyEarlyTitle, desc: t.whyEarlyDesc },
+            ].map((item) => (
+              <div key={item.title} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex gap-4">
+                <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 size={18}/>
+                </div>
+                <div>
+                  <p className="font-black text-slate-900 mb-1">{item.title}</p>
+                  <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* --- WHY DONATION MATTERS --- */}
-      <section className="px-4 md:px-10 pb-12">
-        <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-[32px] p-7 md:p-10">
-          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-5 mb-8">
-            <div className="max-w-2xl">
-              <p className="text-red-700 font-black text-xs tracking-widest uppercase mb-2">{t.whyTag}</p>
-              <h3 className="text-3xl md:text-4xl font-black text-slate-900 mb-3">{t.whyTitle}</h3>
-              <p className="text-slate-600 font-medium leading-relaxed">
-                {t.whyDesc}
-              </p>
-            </div>
-            <div className="md:min-w-56 bg-red-50 border border-red-200 rounded-2xl p-4">
-              <p className="text-sm text-red-700 font-black uppercase tracking-wide mb-1">{t.priorityTag}</p>
-              <p className="text-slate-700 font-semibold text-sm">{t.priorityDesc}</p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center mb-3">
-                <AlertTriangle size={20} />
-              </div>
-              <h4 className="text-lg font-black text-slate-900 mb-2">{t.emergencyNeedTitle}</h4>
-              <p className="text-slate-600 text-sm font-medium">{t.emergencyNeedDesc}</p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
-                <Users size={20} />
-              </div>
-              <h4 className="text-lg font-black text-slate-900 mb-2">{t.communitySaveTitle}</h4>
-              <p className="text-slate-600 text-sm font-medium">{t.communitySaveDesc}</p>
-            </div>
-
-            <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
-                <Heart size={20} />
-              </div>
-              <h4 className="text-lg font-black text-slate-900 mb-2">{t.impactTitle}</h4>
-              <p className="text-slate-600 text-sm font-medium">{t.impactDesc}</p>
-            </div>
-          </div>
-
-          <div className="mt-8 grid md:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-slate-200 p-5 bg-white">
-              <p className="text-slate-900 font-black mb-2">{t.whoDonateTitle}</p>
-              <p className="text-slate-600 text-sm font-medium">{t.whoDonateDesc}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 p-5 bg-white">
-              <p className="text-slate-900 font-black mb-2">{t.whyEarlyTitle}</p>
-              <p className="text-slate-600 text-sm font-medium">{t.whyEarlyDesc}</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* --- ANNOUNCEMENTS / CAMPAIGNS --- */}
+      {/* ==================== ANNOUNCEMENTS ==================== */}
       {announcements.length > 0 && (
-        <section className="px-4 md:px-10 pb-10">
+        <section className="py-14 px-5 md:px-12 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Megaphone className="text-orange-600" size={22} />
-                <h3 className="text-2xl font-black text-slate-900">Campaigns & Announcements</h3>
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <p className="text-orange-600 font-bold text-xs uppercase tracking-widest mb-1">Latest</p>
+                <h3 className="text-2xl font-black text-slate-900 flex items-center gap-2">
+                  <Megaphone className="text-orange-500" size={22}/> Campaigns & Announcements
+                </h3>
               </div>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-5">
               {announcements.map((ann) => (
-                <div key={ann.id} className="bg-white border-l-4 border-orange-400 rounded-2xl p-5 shadow-sm flex gap-4">
-                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                <div key={ann.id} className="bg-orange-50 border border-orange-100 rounded-2xl p-5 flex gap-4 hover:border-orange-200 transition-colors">
+                  <div className="w-11 h-11 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
                     <Megaphone className="text-orange-600" size={18} />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-black text-slate-900 mb-1">{ann.title}</h4>
-                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-3">{ann.content}</p>
+                    <p className="text-slate-600 text-sm leading-relaxed line-clamp-2">{ann.content}</p>
                     <p className="text-slate-400 text-xs mt-2">
                       {new Date(ann.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                       {ann.author_name ? ` — ${ann.author_name}` : ''}
@@ -588,45 +712,104 @@ export default function Home() {
         </section>
       )}
 
-      <section className="px-4 md:px-10 pb-16">
-        <div className="max-w-7xl mx-auto bg-red-700 rounded-[32px] p-7 md:p-9 text-white shadow-xl">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
-            <div>
-              <h3 className="text-2xl md:text-3xl font-black mb-2">{t.emergencyCaseTitle}</h3>
-              <p className="text-red-100 font-medium">{t.emergencyCaseDesc}</p>
+      {/* ==================== EMERGENCY CTA ==================== */}
+      <section className="py-14 px-5 md:px-12 bg-slate-50">
+        <div className="max-w-7xl mx-auto">
+          <div className="relative overflow-hidden bg-gradient-to-r from-red-700 to-red-800 rounded-3xl p-8 md:p-12 shadow-xl">
+            {/* Decorative circles */}
+            <div className="absolute -right-20 -top-20 w-64 h-64 rounded-full bg-red-600/30"/>
+            <div className="absolute -right-5 -bottom-10 w-40 h-40 rounded-full bg-red-900/40"/>
+
+            <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-600 border border-red-500 text-red-100 text-xs font-bold mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-200 animate-pulse"/>
+                  LIVE
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white mb-2">{t.emergencyCaseTitle}</h3>
+                <p className="text-red-200 font-medium max-w-lg">{t.emergencyCaseDesc}</p>
+              </div>
+              <button
+                onClick={() => setShowEmergencyModal(true)}
+                className="inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl bg-white text-red-700 font-black hover:bg-red-50 transition-all shadow-lg shrink-0"
+              >
+                <PhoneCall size={18}/> {t.openEmergency}
+              </button>
             </div>
-            <button
-              onClick={() => setShowEmergencyModal(true)}
-              className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl bg-white text-red-700 font-black hover:bg-red-50 transition-all"
-            >
-              <PhoneCall size={18} /> {t.openEmergency}
-            </button>
           </div>
         </div>
       </section>
 
-      {/* --- EMERGENCY MODAL --- */}
+      {/* ==================== FOOTER ==================== */}
+      <footer className="bg-slate-900 text-slate-400 py-12 px-5 md:px-12">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 pb-8 border-b border-slate-800">
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+                  <Droplets size={16} className="text-white"/>
+                </div>
+                <span className="text-white font-black text-lg">LifeLink</span>
+              </div>
+              <p className="text-sm leading-relaxed">{t.footerTagline}</p>
+            </div>
+
+            <div>
+              <p className="text-white font-bold text-sm mb-3">{t.footerLinks}</p>
+              <div className="flex flex-col gap-2 text-sm">
+                {[
+                  { label: 'Find Donors', path: '/find-donors' },
+                  { label: 'Request Help', path: '/request-help' },
+                  { label: 'About Us', path: '/about' },
+                  { label: 'Register', path: '/register' },
+                ].map((link) => (
+                  <button
+                    key={link.label}
+                    onClick={() => navigate(link.path)}
+                    className="text-left hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    <ChevronRight size={12}/> {link.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-white font-bold text-sm mb-3">{t.footerContact}</p>
+              <div className="space-y-2 text-sm">
+                <p className="flex items-center gap-2"><ShieldCheck size={13} className="text-green-500"/> Verified donor network</p>
+                <p className="flex items-center gap-2"><Clock3 size={13} className="text-blue-400"/> 24/7 emergency support</p>
+                <p className="flex items-center gap-2"><MapPin size={13} className="text-red-400"/> All 77 districts of Nepal</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <p>{t.copyright}</p>
+            <button onClick={() => navigate('/privacy')} className="hover:text-slate-300 transition-colors">Privacy Policy</button>
+          </div>
+        </div>
+      </footer>
+
+      {/* ==================== EMERGENCY MODAL ==================== */}
       {showEmergencyModal && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[10000] flex items-center justify-center p-6">
-          <div className="bg-white w-full max-w-md rounded-[40px] p-10 shadow-2xl animate-in zoom-in duration-300 relative">
-            <button onClick={() => setShowEmergencyModal(false)} className="absolute right-8 top-8 text-slate-400 hover:text-slate-600"><X/></button>
-            <div className="w-16 h-16 bg-red-100 text-red-600 rounded-3xl flex items-center justify-center mb-6"><AlertTriangle size={32}/></div>
-            <h3 className="text-3xl font-black text-slate-900 mb-2">
-              {t.requestHelpModal}
-            </h3>
-            <p className="text-slate-500 font-medium mb-8">
-              {isAuthenticated 
-                ? t.submitRequestDesc
-                : t.requestHelpDesc}
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[10000] flex items-center justify-center p-6">
+          <div className="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl relative">
+            <button onClick={() => setShowEmergencyModal(false)} className="absolute right-6 top-6 text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-all">
+              <X size={18}/>
+            </button>
+            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-5">
+              <AlertTriangle size={28}/>
+            </div>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">{t.requestHelpModal}</h3>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed">
+              {isAuthenticated ? t.submitRequestDesc : t.requestHelpDesc}
             </p>
-            <button 
-              onClick={() => {
-                setShowEmergencyModal(false);
-                navigate('/request-help');
-              }}
-              className="w-full bg-red-600 text-white p-5 rounded-2xl font-black text-lg hover:bg-red-700 transition-all flex items-center justify-center gap-3"
+            <button
+              onClick={() => { setShowEmergencyModal(false); navigate('/request-help'); }}
+              className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
             >
-              <HandHeart size={20}/> {t.submitRequest}
+              <HandHeart size={18}/> {t.submitRequest}
             </button>
           </div>
         </div>

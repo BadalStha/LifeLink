@@ -76,6 +76,21 @@ export const authAPI = {
     });
     return handleResponse(response);
   },
+
+  uploadAvatar: async (file) => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const response = await fetch(`${API_BASE_URL}/api/profile/avatar`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+        // Do NOT set Content-Type — browser must set multipart boundary automatically
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
 };
 
 // Donation Requests APIs

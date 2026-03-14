@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HandHeart, User, Mail, Phone, MapPin, AlertTriangle, CheckCircle, Droplet, Activity, Loader2 } from 'lucide-react';
+import { HandHeart, User, Mail, Phone, MapPin, AlertTriangle, CheckCircle, Droplet, Activity, Loader2, Droplets, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { requestsAPI } from '../services/api';
 
@@ -153,24 +153,42 @@ export default function RequestHelp() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 font-sans">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <button 
-          onClick={() => navigate('/')} 
-          className="mb-6 text-slate-500 font-bold hover:text-red-600 transition-all"
-        >
-          ← Back to Home
-        </button>
-
-        <div className="bg-white rounded-[40px] p-10 shadow-xl border border-slate-100">
-          <div className="flex items-center gap-3 mb-8">
-            <HandHeart className="text-red-600" size={32} />
-            <div>
-              <h2 className="text-4xl font-black text-slate-900">Request Medical Help</h2>
-              <p className="text-slate-500 font-medium">Register your urgent need for blood or organ</p>
+    <div className="min-h-screen bg-slate-50 font-sans">
+      {/* Navbar */}
+      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/')} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-all">
+            <ArrowLeft size={18}/>
+          </button>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center">
+              <Droplets size={14} className="text-white"/>
             </div>
+            <span className="font-black text-slate-900">LifeLink</span>
           </div>
+        </div>
+        {!isAuthenticated && (
+          <button onClick={() => navigate('/login')} className="text-sm font-semibold text-red-600 hover:underline">
+            Login to submit
+          </button>
+        )}
+      </nav>
+
+      {/* Page header banner */}
+      <div className="bg-gradient-to-r from-red-700 to-red-800 text-white py-10 px-5 md:px-12">
+        <div className="max-w-4xl mx-auto flex items-center gap-4">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+            <HandHeart className="text-white" size={28}/>
+          </div>
+          <div>
+            <h1 className="text-3xl font-black leading-tight">Request Medical Help</h1>
+            <p className="text-red-200 mt-1">Submit an urgent need for blood or organ donation support.</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-5 md:px-12 py-8">
+        <div className="bg-white rounded-3xl p-8 md:p-10 shadow-sm border border-slate-100">
 
           <form onSubmit={handleSubmit} className="space-y-8">
             

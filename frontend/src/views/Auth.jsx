@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Droplets } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -88,25 +88,39 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
-      <div className="max-w-5xl w-full bg-white rounded-[50px] shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100">
-        
-        {/* Left Side: Branding & Visuals */}
-        <div className="md:w-[45%] bg-red-600 p-12 text-white flex flex-col justify-between relative overflow-hidden">
-          <div className="relative z-10">
-            <h1 className="text-3xl font-black italic mb-10 cursor-pointer" onClick={() => navigate('/')}>LifeLink</h1>
-            <h2 className="text-5xl font-black leading-tight mb-6">
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 font-sans">
+      <div className="max-w-5xl w-full bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-slate-100">
+
+        {/* Left Side: Branding & Image */}
+        <div className="md:w-[45%] relative flex flex-col justify-between overflow-hidden" style={{minHeight: '520px'}}>
+          {/* Background image */}
+          <img
+            src="https://images.unsplash.com/photo-1615461066841-6116e61058f4?auto=format&fit=crop&w=800&q=80"
+            alt="Blood donation"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-red-900/80 via-red-800/70 to-slate-900/90"/>
+          {/* Content */}
+          <div className="relative z-10 p-10">
+            <div className="flex items-center gap-2.5 cursor-pointer mb-10" onClick={() => navigate('/')}>
+              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                <Droplets size={16} className="text-white"/>
+              </div>
+              <h1 className="text-xl font-black italic text-white">LifeLink</h1>
+            </div>
+            <h2 className="text-4xl font-black leading-tight text-white mb-4">
               {isLogin ? "Welcome Back, Hero." : "Start Saving Lives."}
             </h2>
-            <p className="text-red-100 font-medium text-lg opacity-90">
-              {isLogin 
-                ? "Your presence makes the community stronger. Log in to check active requests." 
+            <p className="text-red-200 font-medium text-base">
+              {isLogin
+                ? "Your presence makes the community stronger. Log in to check active requests."
                 : "Join the largest network of blood and organ donors in Nepal."}
             </p>
           </div>
-          
-          {/* Subtle Decorative Circle */}
-          <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10 px-10 pb-8">
+            <p className="text-white/50 text-xs">Blood & Organ Donation Network of Nepal</p>
+          </div>
         </div>
 
         {/* Right Side: The Form */}

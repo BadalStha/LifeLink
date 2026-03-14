@@ -2,10 +2,41 @@ import express from 'express';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const router = express.Router();
+
+// Multer config for avatar uploads
+const avatarsDir = path.join(__dirname, '../uploads/avatars');
+fs.mkdirSync(avatarsDir, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, avatarsDir),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        cb(null, `user-${req.userId}-${Date.now()}${ext}`);
+    },
+});
+
+const uploadAvatar = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|jpg|png|webp|gif)$/.test(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
+        }
+    },
+});
 
 // Initialize database pool
 const pool = new Pool({
@@ -35,6 +66,34 @@ const verifyToken = (req, res, next) => {
         next();
     });
 };
+
+// POST /api/profile/avatar - Upload profile picture
+router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const profilePicturePath = `/uploads/avatars/${req.file.filename}`;
+
+    try {
+        // Delete old avatar file if it exists (best-effort cleanup)
+        const existing = await pool.query('SELECT profile_picture FROM users WHERE id = $1', [req.userId]);
+        const oldPath = existing.rows[0]?.profile_picture;
+        if (oldPath) {
+            fs.unlink(path.join(__dirname, '..', oldPath), () => {});
+        }
+
+        const result = await pool.query(
+            'UPDATE users SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING profile_picture',
+            [profilePicturePath, req.userId]
+        );
+
+        res.json({ message: 'Profile picture updated', profile_picture: result.rows[0].profile_picture });
+    } catch (err) {
+        console.error('Avatar upload error:', err);
+        res.status(500).json({ error: 'Failed to save profile picture' });
+    }
+});
 
 // PUT /api/profile - Update current user's profile
 router.put('/profile', verifyToken, async (req, res) => {
@@ -81,7 +140,7 @@ router.put('/profile', verifyToken, async (req, res) => {
                  END,
                  updated_at = CURRENT_TIMESTAMP
              WHERE id = $1 
-             RETURNING id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ`,
+             RETURNING id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ, profile_picture`,
             [req.userId, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ]
         );
 

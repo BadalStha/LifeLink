@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   Heart, Droplet, Eye, Activity, Phone, Mail, MapPin,
   ChevronDown, ChevronUp, ArrowLeft, Shield, Users, Clock,
-  AlertTriangle, CheckCircle, BookOpen, Stethoscope
+  AlertTriangle, CheckCircle, BookOpen, Stethoscope, Droplets
 } from 'lucide-react';
 
 const faqs = [
@@ -88,17 +88,27 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
-      {/* Nav */}
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 sticky top-0 z-50">
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2 text-slate-600 hover:text-red-600 font-bold transition-all"
-        >
-          <ArrowLeft size={20} /> Home
-        </button>
-        <div className="h-6 w-px bg-slate-200" />
-        <h1 className="text-xl font-black text-red-700">LifeLink</h1>
-        <span className="text-slate-400 font-medium">| About & Awareness</span>
+      {/* Navbar */}
+      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 md:px-12 py-4 flex items-center justify-between sticky top-0 z-50">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
+            <Droplets size={16} className="text-white"/>
+          </div>
+          <span className="text-lg font-black text-slate-900">LifeLink</span>
+        </div>
+        <span className="text-slate-400 text-sm font-medium hidden md:block">Blood & Organ Donation Awareness</span>
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? (
+            <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-slate-600 hover:text-red-600 font-semibold text-sm transition-colors">
+              <ArrowLeft size={15}/> Back to Home
+            </button>
+          ) : (
+            <>
+              <button onClick={() => navigate('/login')} className="text-sm font-semibold text-slate-600 hover:text-red-600 px-3 py-2 transition-colors">Login</button>
+              <button onClick={() => navigate('/register')} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-all">Register</button>
+            </>
+          )}
+        </div>
       </nav>
 
       {/* Hero */}
@@ -117,10 +127,10 @@ export default function About() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <button
-              onClick={() => navigate('/register?type=donor')}
+              onClick={() => navigate(isAuthenticated ? '/donation-preferences' : '/register?type=donor')}
               className="px-6 py-3 bg-white text-red-700 font-black rounded-2xl hover:bg-red-50 transition-all"
             >
-              Become a Donor
+              {isAuthenticated ? 'Set Donation Preferences' : 'Become a Donor'}
             </button>
             {isAuthenticated && (
               <button
