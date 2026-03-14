@@ -26,6 +26,8 @@ CREATE TABLE users (
     blood_type VARCHAR(10), -- O+, O-, A+, A-, B+, B-, AB+, AB-
     age INT,
     medical_history TEXT,
+    donation_type VARCHAR(20), -- 'blood' or 'organ'
+    donation_organ VARCHAR(50), -- for organ donors
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

@@ -84,7 +84,7 @@ export default function Settings() {
 
   const onLogout = () => {
     logout();
-    navigate('/');
+    window.location.replace('/');
   };
 
   if (isLoading) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, MapPin, ArrowLeft, LogOut, Loader2, MessageCircle, Bell, ToggleLeft, ToggleRight, AlertTriangle, Heart } from 'lucide-react';
+import { History, Settings, MapPin, ArrowLeft, LogOut, Loader2, HandHeart, ToggleLeft, ToggleRight, AlertTriangle, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, usersAPI, requestsAPI } from '../services/api';
 
@@ -56,7 +56,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    window.location.replace('/');
   };
 
   const toggleAvailability = async () => {
@@ -191,10 +191,10 @@ export default function Profile() {
         {/* Quick Action Buttons */}
         <div className="flex gap-3 mb-6">
           <button
-            onClick={() => navigate('/chat')}
+            onClick={() => navigate('/donation-preferences')}
             className="flex-1 flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-700 font-bold rounded-2xl hover:bg-blue-100 transition-all border border-blue-200 text-sm"
           >
-            <MessageCircle size={18} /> Messages
+            <HandHeart size={18} /> I Want to Donate
           </button>
           <button
             onClick={() => navigate('/request-help')}

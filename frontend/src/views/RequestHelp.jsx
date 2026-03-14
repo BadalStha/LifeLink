@@ -31,7 +31,6 @@ export default function RequestHelp() {
     
     // Contact Details
     email: '',
-    telephone: '',
     mobile: '',
     
     // Address
@@ -270,22 +269,6 @@ export default function RequestHelp() {
                       placeholder="ramesh.gurung@example.com"
                       className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                       required
-                    />
-                  </div>
-                </div>
-
-                {/* Telephone */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">Telephone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                    <input
-                      type="tel"
-                      name="telephone"
-                      value={formData.telephone}
-                      onChange={handleChange}
-                      placeholder="+977-01-XXXXXXX"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -573,16 +556,6 @@ export default function RequestHelp() {
               )}
             </button>
           </form>
-
-          <p className="mt-6 text-center text-slate-500 font-medium">
-            Already have an account?{' '}
-            <button
-              onClick={() => navigate('/login')}
-              className="text-red-600 font-bold hover:underline"
-            >
-              Login here
-            </button>
-          </p>
         </div>
       </div>
     </div>

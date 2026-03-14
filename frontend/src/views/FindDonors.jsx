@@ -42,9 +42,14 @@ function DonorCard({ donor, onContact }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-3 mt-2">
-            {donor.blood_type && (
+            {donor.donation_type === 'blood' && donor.blood_type && (
               <span className="flex items-center gap-1 px-2.5 py-1 bg-red-50 text-red-700 rounded-lg text-xs font-black">
                 <Droplet size={12} /> {donor.blood_type}
+              </span>
+            )}
+            {donor.donation_type === 'organ' && donor.organ_type && (
+              <span className="flex items-center gap-1 px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg text-xs font-black capitalize">
+                <Heart size={12} /> {donor.organ_type}
               </span>
             )}
             {donor.city && (
@@ -79,7 +84,7 @@ function DonorCard({ donor, onContact }) {
   );
 }
 
-function ContactModal({ donor, onClose, isAuthenticated, onLogin }) {
+function ContactModal({ donor, onClose, isAuthenticated, onLogin, onStartChat }) {
   if (!donor) return null;
 
   const getInitials = (name) => {
@@ -110,7 +115,7 @@ function ContactModal({ donor, onClose, isAuthenticated, onLogin }) {
             <button
               onClick={() => {
                 onClose();
-                window.location.href = `/chat?to=${donor.id}`;
+                onStartChat(donor.id);
               }}
               className="w-full py-3 bg-red-600 text-white font-black rounded-2xl hover:bg-red-700 transition-all"
             >
@@ -156,8 +161,10 @@ export default function FindDonors() {
     try {
       const params = new URLSearchParams();
       if (filters.blood_type) params.set('blood_type', filters.blood_type);
+      if (filters.organ_type) params.set('organ_type', filters.organ_type);
       if (filters.city) params.set('city', filters.city);
       if (filters.name) params.set('search', filters.name);
+      params.set('ready_to_donate', 'true');
       params.set('limit', '50');
 
       const res = await fetch(`${API_BASE_URL}/api/search?${params}`);
@@ -367,6 +374,7 @@ export default function FindDonors() {
           onClose={() => setSelectedDonor(null)}
           isAuthenticated={isAuthenticated}
           onLogin={() => navigate('/login')}
+          onStartChat={(donorId) => navigate(`/chat?to=${donorId}`)}
         />
       )}
     </div>

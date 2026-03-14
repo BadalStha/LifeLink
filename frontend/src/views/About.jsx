@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   Heart, Droplet, Eye, Activity, Phone, Mail, MapPin,
   ChevronDown, ChevronUp, ArrowLeft, Shield, Users, Clock,
@@ -83,6 +84,7 @@ function FAQItem({ q, a }) {
 
 export default function About() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -120,12 +122,14 @@ export default function About() {
             >
               Become a Donor
             </button>
-            <button
-              onClick={() => navigate('/find-donors')}
-              className="px-6 py-3 bg-red-800 text-white font-black rounded-2xl hover:bg-red-900 border border-red-600 transition-all"
-            >
-              Find a Donor
-            </button>
+            {isAuthenticated && (
+              <button
+                onClick={() => navigate('/find-donors')}
+                className="px-6 py-3 bg-red-800 text-white font-black rounded-2xl hover:bg-red-900 border border-red-600 transition-all"
+              >
+                Find a Donor
+              </button>
+            )}
           </div>
         </div>
       </header>
