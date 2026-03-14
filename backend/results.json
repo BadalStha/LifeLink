@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "name": "Saugat  Panta",
+    "city": "Jhapa",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": "blood",
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "Test User",
+    "city": "Bhojpur",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": null,
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "name": "sahit  sigdel",
+    "city": "Jhapa",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": "blood",
+    "is_active": true
+  },
+  {
+    "id": 4,
+    "name": "test testt",
+    "city": "Jhapa",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": "blood",
+    "is_active": true
+  },
+  {
+    "id": 5,
+    "name": "kalpana baniya",
+    "city": "Jhapa",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": "organ",
+    "is_active": true
+  },
+  {
+    "id": 6,
+    "name": "test3 test",
+    "city": "Morang",
+    "role": "user",
+    "blood_type": null,
+    "donation_type": null,
+    "is_active": true
+  }
+]
