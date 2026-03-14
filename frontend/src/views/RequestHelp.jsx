@@ -501,8 +501,8 @@ export default function RequestHelp() {
                 >
                   <option value="">Select Urgency</option>
                   <option value="critical">🔴 Critical - Immediate Need (Within 24 hours)</option>
-                  <option value="urgent">🟠 Urgent - Within a Week</option>
-                  <option value="moderate">🟡 Moderate - Within a Month</option>
+                  <option value="high">🟠 Urgent - Within a Week</option>
+                  <option value="medium">🟡 Moderate - Within a Month</option>
                 </select>
               </div>
 
