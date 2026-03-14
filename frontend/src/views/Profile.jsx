@@ -15,6 +15,7 @@ export default function Profile() {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('history');
   const [isToggling, setIsToggling] = useState(false);
+  const [cancellingRequestId, setCancellingRequestId] = useState(null);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -75,6 +76,32 @@ export default function Profile() {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const cancelRequest = async (requestId) => {
+    const confirmed = window.confirm('Cancel this request? This will mark it as cancelled.');
+    if (!confirmed) return;
+
+    setCancellingRequestId(requestId);
+    try {
+      const result = await requestsAPI.update(requestId, { status: 'cancelled' });
+      const updatedRequest = result?.request;
+
+      setMyRequests((prev) => prev.map((req) => (
+        req.id === requestId
+          ? {
+              ...req,
+              status: updatedRequest?.status || 'cancelled',
+              updated_at: updatedRequest?.updated_at || req.updated_at,
+            }
+          : req
+      )));
+    } catch (err) {
+      console.error('Failed to cancel request:', err);
+      alert(err?.message || 'Could not cancel request. Please try again.');
+    } finally {
+      setCancellingRequestId(null);
+    }
   };
 
   if (isLoading) {
@@ -306,6 +333,17 @@ export default function Profile() {
                           </div>
                         </div>
                         {req.reason && <p className="text-sm text-slate-500 mt-1">{req.reason}</p>}
+                        {req.status === 'open' && (
+                          <div className="mt-4 flex justify-end">
+                            <button
+                              onClick={() => cancelRequest(req.id)}
+                              disabled={cancellingRequestId === req.id}
+                              className="px-4 py-2 rounded-xl bg-red-100 text-red-700 text-xs font-black hover:bg-red-200 transition-all disabled:opacity-50"
+                            >
+                              {cancellingRequestId === req.id ? 'Cancelling...' : 'Cancel Request'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })

@@ -82,6 +82,38 @@ router.post('/requests', verifyToken, async (req, res) => {
             ]
         );
 
+        // Create a notification alert for other users when a help request is submitted.
+        try {
+            const createdRequest = result.rows[0];
+            const requesterResult = await pool.query(
+                `SELECT name FROM users WHERE id = $1`,
+                [req.userId]
+            );
+            const requesterName = requesterResult.rows[0]?.name || 'A user';
+            const requestLabel = request_type === 'blood'
+                ? `blood (${blood_type || 'unknown group'})`
+                : `organ (${organ_type || 'unknown organ'})`;
+
+            await pool.query(
+                `INSERT INTO alerts
+                 (created_by, alert_type, message, urgency, target_audience, blood_type_target, organ_type_target, related_request_id)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [
+                    req.userId,
+                    request_type === 'blood' ? 'blood_needed' : 'organ_needed',
+                    `${requesterName} submitted a ${requestLabel} help request${location ? ` at ${location}` : ''}.`,
+                    urgency || 'medium',
+                    request_type === 'blood' && blood_type ? 'specific_blood_type' : 'all_users',
+                    request_type === 'blood' ? blood_type || null : null,
+                    request_type === 'organ' ? organ_type || null : null,
+                    createdRequest.id
+                ]
+            );
+        } catch (alertErr) {
+            // Alert creation should not block request submission.
+            console.error('Create request alert error:', alertErr);
+        }
+
         res.status(201).json({
             message: 'Donation request created successfully',
             request: result.rows[0]
