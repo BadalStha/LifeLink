@@ -84,7 +84,7 @@ function FAQItem({ q, a }) {
 
 export default function About() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAuthLoading } = useAuth();
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -130,7 +130,7 @@ export default function About() {
               onClick={() => navigate(isAuthenticated ? '/donation-preferences' : '/register?type=donor')}
               className="px-6 py-3 bg-white text-red-700 font-black rounded-2xl hover:bg-red-50 transition-all"
             >
-              {isAuthenticated ? 'Set Donation Preferences' : 'Become a Donor'}
+              {isAuthLoading ? 'Loading...' : isAuthenticated ? 'Donation Preferences' : 'Become a Donor'}
             </button>
             {isAuthenticated && (
               <button
@@ -331,10 +331,11 @@ export default function About() {
           <p className="text-red-200 mb-8 text-lg">Join thousands of life savers across Nepal. It takes just 5 minutes to register.</p>
           <div className="flex flex-wrap justify-center gap-4">
             <button
-              onClick={() => navigate('/register?type=donor')}
+              onClick={() => navigate(isAuthenticated ? '/donation-preferences' : '/register?type=donor')}
               className="px-8 py-3 bg-white text-red-700 font-black rounded-2xl hover:bg-red-50 transition-all"
+              disabled={isAuthLoading}
             >
-              Register as Donor
+              {isAuthLoading ? 'Loading...' : isAuthenticated ? 'Donation Preferences' : 'Register as Donor'}
             </button>
             <button
               onClick={() => navigate('/request-help')}
