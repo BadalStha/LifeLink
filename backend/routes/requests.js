@@ -1,50 +1,19 @@
 import express from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-
-    if (!token) {
-        return res.status(403).json({ error: 'No token provided' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
 
 // POST /api/requests - Create a new donation request
 router.post('/requests', verifyToken, async (req, res) => {
-    const { 
-        request_type, 
-        blood_type, 
-        organ_type, 
-        units_needed, 
-        urgency, 
-        reason, 
-        location 
+    const {
+        request_type,
+        blood_type,
+        organ_type,
+        units_needed,
+        urgency,
+        reason,
+        location
     } = req.body;
 
     if (!request_type || (request_type !== 'blood' && request_type !== 'organ')) {
@@ -66,9 +35,9 @@ router.post('/requests', verifyToken, async (req, res) => {
 
     try {
         const result = await pool.query(
-            `INSERT INTO donation_requests 
-             (requester_id, request_type, blood_type, organ_type, units_needed, urgency, reason, location, status) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'open') 
+            `INSERT INTO donation_requests
+             (requester_id, request_type, blood_type, organ_type, units_needed, urgency, reason, location, status)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'open')
              RETURNING *`,
             [
                 req.userId,
@@ -126,14 +95,14 @@ router.post('/requests', verifyToken, async (req, res) => {
 
 // GET /api/requests - Get all donation requests (with filters)
 router.get('/requests', async (req, res) => {
-    const { 
-        request_type, 
-        blood_type, 
-        organ_type, 
-        urgency, 
+    const {
+        request_type,
+        blood_type,
+        organ_type,
+        urgency,
         status = 'open',
-        limit = 50, 
-        offset = 0 
+        limit = 50,
+        offset = 0
     } = req.query;
 
     try {
@@ -176,12 +145,12 @@ router.get('/requests', async (req, res) => {
             paramCount++;
         }
 
-        query += ` ORDER BY 
-            CASE dr.urgency 
-                WHEN 'critical' THEN 1 
-                WHEN 'high' THEN 2 
-                WHEN 'medium' THEN 3 
-                WHEN 'low' THEN 4 
+        query += ` ORDER BY
+            CASE dr.urgency
+                WHEN 'critical' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
             END,
             dr.created_at DESC
             LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
@@ -264,7 +233,7 @@ router.put('/requests/:id', verifyToken, async (req, res) => {
         }
 
         const result = await pool.query(
-            `UPDATE donation_requests 
+            `UPDATE donation_requests
              SET status = COALESCE($2, status),
                  urgency = COALESCE($3, urgency),
                  reason = COALESCE($4, reason),
@@ -318,12 +287,12 @@ router.delete('/requests/:id', verifyToken, async (req, res) => {
     }
 });
 
-// GET /api/requests/user/my-requests - Get current user's requests
+// GET /api/user/my-requests - Get current user's requests
 router.get('/user/my-requests', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT * FROM donation_requests 
-             WHERE requester_id = $1 
+            `SELECT * FROM donation_requests
+             WHERE requester_id = $1
              ORDER BY created_at DESC`,
             [req.userId]
         );

@@ -1,42 +1,9 @@
+import bcrypt from 'bcrypt';
 import express from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
+import { verifyAdminToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-const verifyAdminToken = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
-
-    if (!token) {
-        return res.status(403).json({ error: 'No admin token provided' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Invalid or expired admin token' });
-        }
-
-        if (!decoded.isAdmin && decoded.role !== 'admin') {
-            return res.status(403).json({ error: 'Admin access required' });
-        }
-
-        req.adminId = decoded.adminId || decoded.userId || null;
-        req.adminEmail = decoded.email || null;
-        next();
-    });
-};
 
 const ensureAdminTables = async () => {
     await pool.query(`
@@ -472,6 +439,44 @@ router.post('/requests/:id/match', async (req, res) => {
     } catch (err) {
         console.error('Admin donor match error:', err);
         res.status(500).json({ error: 'Failed to match donor' });
+    }
+});
+
+router.post('/hospitals', async (req, res) => {
+    const { name, email, password, phone, city, address, location } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'name, email, and password are required' });
+    }
+    if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    try {
+        const existing = await pool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+        if (existing.rows.length > 0) {
+            return res.status(409).json({ error: 'Email already in use' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const userResult = await pool.query(
+            'INSERT INTO users (email, password, role, name, phone, city, address) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+            [normalizedEmail, hashedPassword, 'hospital', name.trim(), phone?.trim() || null, city?.trim() || null, address?.trim() || null]
+        );
+        const userId = userResult.rows[0].id;
+
+        const hospResult = await pool.query(
+            'INSERT INTO hospitals (name, admin_id, phone, email, city, address, location) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+            [name.trim(), userId, phone?.trim() || null, normalizedEmail, city?.trim() || null, address?.trim() || null, location?.trim() || null]
+        );
+
+        res.status(201).json({ message: 'Hospital account created', hospital: hospResult.rows[0], userId });
+    } catch (err) {
+        console.error('Admin create hospital error:', err);
+        res.status(500).json({ error: 'Failed to create hospital account' });
     }
 });
 

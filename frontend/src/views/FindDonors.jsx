@@ -7,6 +7,8 @@ import {
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { usersAPI, API_BASE_URL } from '../services/api';
+import { BLOOD_TYPES, ORGAN_TYPES } from '../data/constants';
 
 // Fix default leaflet icon
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
@@ -150,10 +152,6 @@ function FlyToUser({ userPos }) {
   return null;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const BLOOD_TYPES = ['', 'O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
-const ORGAN_TYPES = ['', 'Kidney', 'Liver', 'Heart', 'Lung', 'Cornea', 'Pancreas'];
 const DISTRICTS = [
   '', 'Kathmandu', 'Lalitpur', 'Bhaktapur', 'Pokhara', 'Chitwan',
   'Jhapa', 'Morang', 'Sunsari', 'Dhanusha', 'Bara', 'Parsa',
@@ -326,18 +324,30 @@ function MapModal({ donors, onClose }) {
 }
 
 // ─── Donor Card ─────────────────────────────────────────────────────────────
-function DonorCard({ donor, onContact }) {
+function DonorCard({ donor, navigate }) {
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const picUrl = donor.profile_picture
+    ? (donor.profile_picture.startsWith('http') ? donor.profile_picture : `${API_BASE_URL}${donor.profile_picture}`)
+    : null;
+
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all">
       <div className="flex items-start gap-4">
-        <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white font-black text-lg shrink-0">
-          {getInitials(donor.name)}
-        </div>
+        {picUrl ? (
+          <img
+            src={picUrl}
+            alt={donor.name}
+            className="w-14 h-14 rounded-full object-cover shrink-0 border-2 border-red-200"
+          />
+        ) : (
+          <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center text-white font-black text-lg shrink-0">
+            {getInitials(donor.name)}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <h3 className="font-black text-slate-800 truncate">{donor.name || 'Anonymous Donor'}</h3>
@@ -362,25 +372,14 @@ function DonorCard({ donor, onContact }) {
               </span>
             )}
           </div>
-          {donor.medical_history && (
-            <p className="text-slate-500 text-xs mt-2 line-clamp-2">{donor.medical_history}</p>
-          )}
         </div>
       </div>
-      <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
-        <button
-          onClick={() => onContact(donor)}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all"
-        >
-          <MessageCircle size={16} /> Contact Donor
-        </button>
-        <button
-          onClick={() => onContact(donor)}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 font-bold rounded-xl text-sm hover:bg-slate-200 transition-all"
-        >
-          <Phone size={16} /> Request
-        </button>
-      </div>
+      <button
+        onClick={() => navigate(`/donor/${donor.id}`)}
+        className="w-full mt-4 pt-4 border-t border-slate-100 flex items-center justify-center gap-2 py-2.5 bg-red-600 text-white font-bold rounded-xl text-sm hover:bg-red-700 transition-all"
+      >
+        <Eye size={16} /> View Profile
+      </button>
     </div>
   );
 }
@@ -450,16 +449,15 @@ export default function FindDonors() {
   const fetchDonors = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filters.blood_type) params.set('blood_type', filters.blood_type);
-      if (filters.organ_type) params.set('organ_type', filters.organ_type);
-      if (filters.city) params.set('city', filters.city);
-      if (filters.name) params.set('search', filters.name);
-      params.set('ready_to_donate', 'true');
-      params.set('limit', '50');
+      const params = {};
+      if (filters.blood_type) params.blood_type = filters.blood_type;
+      if (filters.organ_type) params.organ_type = filters.organ_type;
+      if (filters.city) params.city = filters.city;
+      if (filters.name) params.search = filters.name;
+      params.ready_to_donate = 'true';
+      params.limit = '50';
 
-      const res = await fetch(`${API_BASE_URL}/api/search?${params}`);
-      const data = await res.json();
+      const data = await usersAPI.search(params);
       setDonors(data.users || []);
     } catch (err) {
       console.error('Failed to fetch donors:', err);
@@ -600,7 +598,7 @@ export default function FindDonors() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {donors.map((donor) => (
-              <DonorCard key={donor.id} donor={donor} onContact={setSelectedDonor} />
+              <DonorCard key={donor.id} donor={donor} navigate={navigate} />
             ))}
           </div>
         )}

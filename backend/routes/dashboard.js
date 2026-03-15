@@ -1,19 +1,7 @@
 import express from 'express';
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
 
 const router = express.Router();
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
 
 // GET /api/dashboard/stats - Get platform statistics
 router.get('/stats', async (req, res) => {
@@ -25,25 +13,25 @@ router.get('/stats', async (req, res) => {
 
            // Get donors count (users who completed donation preference form)
         const donorsResult = await pool.query(
-            `SELECT COUNT(*) as total_donors FROM users 
+            `SELECT COUNT(*) as total_donors FROM users
                WHERE is_active = true AND donation_type IS NOT NULL`
         );
 
         // Get active requests count
         const activeRequestsResult = await pool.query(
-            `SELECT COUNT(*) as active_requests FROM donation_requests 
+            `SELECT COUNT(*) as active_requests FROM donation_requests
              WHERE status = 'open'`
         );
 
         // Get critical requests count
         const criticalRequestsResult = await pool.query(
-            `SELECT COUNT(*) as critical_requests FROM donation_requests 
+            `SELECT COUNT(*) as critical_requests FROM donation_requests
              WHERE status = 'open' AND urgency = 'critical'`
         );
 
         // Get fulfilled requests count (total lives saved)
         const fulfilledResult = await pool.query(
-            `SELECT COUNT(*) as fulfilled_requests FROM donation_requests 
+            `SELECT COUNT(*) as fulfilled_requests FROM donation_requests
              WHERE status = 'fulfilled'`
         );
 
@@ -64,7 +52,7 @@ router.get('/stats', async (req, res) => {
 
         // Get recent requests (last 5)
         const recentRequestsResult = await pool.query(
-            `SELECT dr.*, u.name as requester_name, u.city 
+            `SELECT dr.*, u.name as requester_name, u.city
              FROM donation_requests dr
              LEFT JOIN users u ON dr.requester_id = u.id
              WHERE dr.status = 'open'
@@ -74,8 +62,8 @@ router.get('/stats', async (req, res) => {
 
         // Get blood type distribution
         const bloodTypeResult = await pool.query(
-            `SELECT blood_type, COUNT(*) as count 
-             FROM users 
+            `SELECT blood_type, COUNT(*) as count
+             FROM users
              WHERE blood_type IS NOT NULL AND is_active = true
              GROUP BY blood_type
              ORDER BY count DESC`
@@ -108,7 +96,7 @@ router.get('/users', async (req, res) => {
     try {
         let query = `
             SELECT id, name, email, role, blood_type, city, phone, age, is_active, created_at
-            FROM users 
+            FROM users
             WHERE 1=1
         `;
         const params = [];

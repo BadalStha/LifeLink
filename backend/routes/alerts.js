@@ -1,39 +1,8 @@
 import express from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-
-    if (!token) {
-        return res.status(403).json({ error: 'No token provided' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
 
 // POST /api/alerts - Create a new alert (admin/hospital only)
 router.post('/alerts', verifyToken, async (req, res) => {
@@ -67,9 +36,9 @@ router.post('/alerts', verifyToken, async (req, res) => {
 
     try {
         const result = await pool.query(
-            `INSERT INTO alerts 
-             (created_by, alert_type, message, urgency, target_audience, blood_type_target, organ_type_target, related_request_id) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8) 
+            `INSERT INTO alerts
+             (created_by, alert_type, message, urgency, target_audience, blood_type_target, organ_type_target, related_request_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              RETURNING *`,
             [
                 req.userId,
@@ -99,7 +68,7 @@ router.get('/alerts', async (req, res) => {
 
     try {
         let query = `
-            SELECT a.*, u.name as created_by_name 
+            SELECT a.*, u.name as created_by_name
             FROM alerts a
             LEFT JOIN users u ON a.created_by = u.id
             WHERE 1=1
@@ -119,12 +88,12 @@ router.get('/alerts', async (req, res) => {
             paramCount++;
         }
 
-        query += ` ORDER BY 
-            CASE a.urgency 
-                WHEN 'critical' THEN 1 
-                WHEN 'high' THEN 2 
-                WHEN 'medium' THEN 3 
-                WHEN 'low' THEN 4 
+        query += ` ORDER BY
+            CASE a.urgency
+                WHEN 'critical' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
             END,
             a.created_at DESC
             LIMIT $${paramCount} OFFSET $${paramCount + 1}`;

@@ -5,8 +5,7 @@ import {
   ShieldCheck, MapPin, Clock3, AlertCircle, CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { authAPI } from '../services/api';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -23,15 +22,6 @@ export default function Auth() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const getErrorMessage = async (response) => {
-    try {
-      const errorData = await response.json();
-      return errorData.error || 'Authentication failed';
-    } catch {
-      return 'Authentication failed';
-    }
-  };
-
   const handleAuth = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -40,6 +30,7 @@ export default function Auth() {
 
     try {
       if (isLogin) {
+        const loginData = await authAPI.login(formData.email, formData.password);
         const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -52,15 +43,11 @@ export default function Auth() {
         return;
       }
 
-      const registerResponse = await fetch(`${API_BASE_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          role: 'user',
-        }),
+      await authAPI.register({
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        role: 'user',
       });
       if (!registerResponse.ok) throw new Error(await getErrorMessage(registerResponse));
 

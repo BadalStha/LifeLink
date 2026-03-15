@@ -1,31 +1,8 @@
 import express from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(403).json({ error: 'No token provided' });
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(401).json({ error: 'Invalid or expired token' });
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
 
 // GET /api/messages/conversations - get unique conversation partners with last message
 router.get('/messages/conversations', verifyToken, async (req, res) => {
@@ -34,6 +11,7 @@ router.get('/messages/conversations', verifyToken, async (req, res) => {
             `SELECT DISTINCT ON (partner_id)
                  partner_id,
                  partner_name,
+                 partner_profile_picture,
                  last_message,
                  last_message_at,
                  unread_count
@@ -41,6 +19,7 @@ router.get('/messages/conversations', verifyToken, async (req, res) => {
                  SELECT
                      CASE WHEN m.sender_id = $1 THEN m.recipient_id ELSE m.sender_id END AS partner_id,
                      CASE WHEN m.sender_id = $1 THEN ru.name ELSE su.name END AS partner_name,
+                     CASE WHEN m.sender_id = $1 THEN ru.profile_picture ELSE su.profile_picture END AS partner_profile_picture,
                      m.content AS last_message,
                      m.created_at AS last_message_at,
                      COUNT(CASE WHEN m.recipient_id = $1 AND m.is_read = false THEN 1 END)
@@ -68,7 +47,7 @@ router.get('/messages/:userId', verifyToken, async (req, res) => {
     if (isNaN(userId)) return res.status(400).json({ error: 'Invalid user ID' });
     try {
         const result = await pool.query(
-            `SELECT m.*, s.name AS sender_name
+            `SELECT m.*, s.name AS sender_name, s.profile_picture AS sender_profile_picture
              FROM messages m
              JOIN users s ON m.sender_id = s.id
              WHERE (m.sender_id = $1 AND m.recipient_id = $2)
@@ -111,7 +90,7 @@ router.post('/messages', verifyToken, async (req, res) => {
             [req.userId, recipient_id, content.trim()]
         );
         const withSender = await pool.query(
-            `SELECT m.*, u.name AS sender_name FROM messages m
+            `SELECT m.*, u.name AS sender_name, u.profile_picture AS sender_profile_picture FROM messages m
              JOIN users u ON m.sender_id = u.id
              WHERE m.id = $1`,
             [insert.rows[0].id]

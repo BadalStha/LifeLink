@@ -1,5 +1,5 @@
 // API Base URL
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 // Helper to get auth token
 const getAuthToken = () => {
@@ -91,6 +91,33 @@ export const authAPI = {
     });
     return handleResponse(response);
   },
+
+  requestResetCode: async (name, email) => {
+    const response = await fetch(`${API_BASE_URL}/api/forgot-password/request-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email }),
+    });
+    return handleResponse(response);
+  },
+
+  verifyResetCode: async (email, code) => {
+    const response = await fetch(`${API_BASE_URL}/api/forgot-password/verify-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+    return handleResponse(response);
+  },
+
+  resetPassword: async (reset_token, new_password) => {
+    const response = await fetch(`${API_BASE_URL}/api/forgot-password/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reset_token, new_password }),
+    });
+    return handleResponse(response);
+  },
 };
 
 // Donation Requests APIs
@@ -149,26 +176,31 @@ export const dashboardAPI = {
   },
 };
 
-// Alerts APIs
-export const alertsAPI = {
-  create: async (alertData) => {
-    const response = await authFetch(`${API_BASE_URL}/api/alerts`, {
+// Messages APIs
+export const messagesAPI = {
+  getConversations: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/messages/conversations`);
+    return handleResponse(response);
+  },
+
+  getMessages: async (userId, limit = 50, offset = 0) => {
+    const response = await authFetch(`${API_BASE_URL}/api/messages/${userId}?limit=${limit}&offset=${offset}`);
+    return handleResponse(response);
+  },
+
+  sendMessage: async (recipient_id, content) => {
+    const response = await authFetch(`${API_BASE_URL}/api/messages`, {
       method: 'POST',
-      body: JSON.stringify(alertData),
+      body: JSON.stringify({ recipient_id, content }),
     });
     return handleResponse(response);
   },
+};
 
-  getAll: async (filters = {}) => {
-    const params = new URLSearchParams(filters);
-    const response = await fetch(`${API_BASE_URL}/api/alerts?${params}`);
-    return handleResponse(response);
-  },
-
-  delete: async (id) => {
-    const response = await authFetch(`${API_BASE_URL}/api/alerts/${id}`, {
-      method: 'DELETE',
-    });
+// Announcements API (public)
+export const announcementsAPI = {
+  getPublished: async (limit = 10) => {
+    const response = await fetch(`${API_BASE_URL}/api/announcements?limit=${limit}`);
     return handleResponse(response);
   },
 };
@@ -177,7 +209,7 @@ export const alertsAPI = {
 export const usersAPI = {
   search: async (filters = {}) => {
     const params = new URLSearchParams(filters);
-    const response = await fetch(`${API_BASE_URL}/api/search?${params}`);
+    const response = await authFetch(`${API_BASE_URL}/api/search?${params}`);
     return handleResponse(response);
   },
 
@@ -214,6 +246,15 @@ export const donorsAPI = {
 };
 
 export const adminAPI = {
+  login: async (email, password) => {
+    const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    return handleResponse(response);
+  },
+
   getOverview: async () => {
     const response = await adminFetch(`${API_BASE_URL}/api/admin/overview`);
     return handleResponse(response);
@@ -289,6 +330,14 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
+  createHospital: async (payload) => {
+    const response = await adminFetch(`${API_BASE_URL}/api/admin/hospitals`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
   sendBroadcast: async (payload) => {
     const response = await adminFetch(`${API_BASE_URL}/api/admin/broadcast`, {
       method: 'POST',
@@ -359,12 +408,96 @@ export const adminAPI = {
   },
 };
 
+const getHospitalToken = () => localStorage.getItem('hospitalToken');
+
+const hospitalFetch = (url, options = {}) => {
+  const token = getHospitalToken();
+  return fetch(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+  });
+};
+
+export const hospitalAPI = {
+  login: async (email, password) => {
+    const response = await fetch(`${API_BASE_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await handleResponse(response);
+    if (data.user?.role !== 'hospital') {
+      throw new Error('This account does not have hospital access');
+    }
+    return data;
+  },
+
+  getProfile: async () => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/profile`);
+    return handleResponse(response);
+  },
+
+  createAnnouncement: async (payload) => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/announcements`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  getAnnouncements: async (limit = 10, offset = 0) => {
+    const response = await hospitalFetch(
+      `${API_BASE_URL}/api/hospital/announcements?limit=${limit}&offset=${offset}`
+    );
+    return handleResponse(response);
+  },
+
+  deleteAnnouncement: async (id) => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/announcements/${id}`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
+  getStats: async () => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/hospital/stats`);
+    return handleResponse(response);
+  },
+
+  getRequests: async (filters = {}) => {
+    const params = new URLSearchParams(filters);
+    const response = await hospitalFetch(
+      `${API_BASE_URL}/api/hospital/requests?${params}`
+    );
+    return handleResponse(response);
+  },
+
+  createCampaign: async (payload) => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/hospital/campaigns`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return handleResponse(response);
+  },
+
+  getCampaigns: async () => {
+    const response = await hospitalFetch(`${API_BASE_URL}/api/hospital/campaigns`);
+    return handleResponse(response);
+  },
+};
+
 export default {
   auth: authAPI,
   requests: requestsAPI,
   dashboard: dashboardAPI,
-  alerts: alertsAPI,
+  messages: messagesAPI,
+  announcements: announcementsAPI,
   users: usersAPI,
   donors: donorsAPI,
   admin: adminAPI,
+  hospital: hospitalAPI,
 };

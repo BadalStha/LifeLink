@@ -65,15 +65,6 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  const getErrorMessage = async (response) => {
-    try {
-      const errorData = await response.json();
-      return errorData.error || 'Registration failed';
-    } catch {
-      return 'Registration failed';
-    }
-  };
-
   const calculateAge = (year, month, day) => {
     const birthDate = new Date(Number(year), Number(month) - 1, Number(day));
     if (Number.isNaN(birthDate.getTime())) return null;
@@ -109,21 +100,17 @@ export default function Register() {
       const age = calculateAge(formData.dobYear, formData.dobMonth, formData.dobDay);
       const address = `${formData.municipality}, Ward ${formData.ward}, ${formData.district}, ${formData.province}`;
 
-      const registerResponse = await fetch(`${API_BASE_URL}/api/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          role: userRole === 'recipient' ? 'patient' : 'user',
-          name: fullName,
-          phone: formData.mobile,
-          city: formData.district,
-          address,
-          age,
-          blood_type: null,
-          medical_history: null,
-        }),
+      await authAPI.register({
+        email: formData.email,
+        password: formData.password,
+        role: userRole === 'recipient' ? 'patient' : 'user',
+        name: fullName,
+        phone: formData.mobile,
+        city: formData.district,
+        address,
+        age,
+        blood_type: null,
+        medical_history: null,
       });
 
       if (!registerResponse.ok) throw new Error(await getErrorMessage(registerResponse));

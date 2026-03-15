@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Activity,
@@ -7,6 +7,7 @@ import {
   Bell,
   Building2,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
   Download,
   FileText,
@@ -23,8 +24,13 @@ import {
   X,
   XCircle,
 } from 'lucide-react';
-import DonorMap from '../Components/DonorMap';
+import DonorMap from '../components/DonorMap';
 import { adminAPI } from '../services/api';
+import { NEPAL_HOSPITALS } from '../data/constants';
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                         */
@@ -196,6 +202,71 @@ function SimpleListCard({ title, items, itemKey }) {
 /*  Main component                                                    */
 /* ------------------------------------------------------------------ */
 
+function HospitalNameCombobox({ value, onChange, onCityChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const filtered = value.trim().length === 0
+    ? NEPAL_HOSPITALS
+    : NEPAL_HOSPITALS.filter((h) =>
+        h.name.toLowerCase().includes(value.toLowerCase())
+      );
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative sm:col-span-2">
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Hospital Name"
+          required
+          className="w-full px-3 py-2.5 pr-9 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+        />
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+          tabIndex={-1}
+        >
+          <ChevronDown size={15} />
+        </button>
+      </div>
+
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg text-sm">
+          {filtered.slice(0, 10).map((h) => (
+            <li key={h.name}>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(h.name);
+                  onCityChange(h.city);
+                  setOpen(false);
+                }}
+                className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition-colors"
+              >
+                <span className="font-medium text-slate-900">{h.name}</span>
+                <span className="text-slate-400 text-xs ml-2">{h.city}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function Admin() {
   const navigate = useNavigate();
 
@@ -238,6 +309,12 @@ export default function Admin() {
   });
 
   const [hospitalEdit, setHospitalEdit] = useState(null);
+  const [showCreateHospital, setShowCreateHospital] = useState(false);
+  const [createHospitalForm, setCreateHospitalForm] = useState({ name: '', email: '', password: '', phone: '', city: '' });
+  const [createHospitalError, setCreateHospitalError] = useState('');
+  const [createHospitalSuccess, setCreateHospitalSuccess] = useState('');
+
+  /* ---------- data loading ---------- */
 
   /* ---------- data loading ---------- */
 
@@ -352,6 +429,20 @@ export default function Admin() {
       await loadAll();
     } catch (err) {
       alert(err.message || 'Failed to update hospital profile');
+    }
+  };
+
+  const submitCreateHospital = async (e) => {
+    e.preventDefault();
+    setCreateHospitalError('');
+    setCreateHospitalSuccess('');
+    try {
+      await adminAPI.createHospital(createHospitalForm);
+      setCreateHospitalSuccess('Hospital account created successfully.');
+      setCreateHospitalForm({ name: '', email: '', password: '', phone: '', city: '' });
+      await loadAll();
+    } catch (err) {
+      setCreateHospitalError(err.message || 'Failed to create hospital account');
     }
   };
 
@@ -574,6 +665,58 @@ export default function Admin() {
     if (activeTab === 'hospitals') {
       return (
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => { setShowCreateHospital(!showCreateHospital); setCreateHospitalError(''); setCreateHospitalSuccess(''); }}
+              className="px-4 py-2 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              {showCreateHospital ? 'Cancel' : 'Create Hospital Account'}
+            </button>
+          </div>
+
+          {showCreateHospital && (
+            <form onSubmit={submitCreateHospital} className="bg-white rounded-xl border-2 border-blue-200 p-5">
+              <p className="font-semibold text-slate-900 mb-4">New Hospital Account</p>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <HospitalNameCombobox
+                  value={createHospitalForm.name}
+                  onChange={(val) => setCreateHospitalForm((p) => ({ ...p, name: val }))}
+                  onCityChange={(city) => setCreateHospitalForm((p) => ({ ...p, city: p.city || city }))}
+                />
+                {[
+                  { key: 'email', label: 'Email', type: 'email', required: true },
+                  { key: 'password', label: 'Password', type: 'password', required: true },
+                  { key: 'phone', label: 'Phone', type: 'text', required: false },
+                  { key: 'city', label: 'City', type: 'text', required: false },
+                ].map(({ key, label, type, required }) => (
+                  <input
+                    key={key}
+                    type={type}
+                    value={createHospitalForm[key]}
+                    onChange={(e) => setCreateHospitalForm({ ...createHospitalForm, [key]: e.target.value })}
+                    placeholder={label}
+                    required={required}
+                    className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+                  />
+                ))}
+              </div>
+              {createHospitalError && (
+                <p className="mt-3 text-sm text-red-600 font-medium">{createHospitalError}</p>
+              )}
+              {createHospitalSuccess && (
+                <p className="mt-3 text-sm text-green-600 font-medium">{createHospitalSuccess}</p>
+              )}
+              <div className="flex gap-2 mt-4">
+                <button type="submit" className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">
+                  Create Account
+                </button>
+                <button type="button" onClick={() => setShowCreateHospital(false)} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-200 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+
           {hospitals.map((h) => (
             <div key={h.id} className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

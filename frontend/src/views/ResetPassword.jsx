@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { authAPI } from '../services/api';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -17,15 +16,6 @@ export default function ResetPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  const getErrorMessage = async (response) => {
-    try {
-      const errorData = await response.json();
-      return errorData.error || 'Request failed';
-    } catch {
-      return 'Request failed';
-    }
-  };
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -49,18 +39,7 @@ export default function ResetPassword() {
 
     setIsSubmitting(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/forgot-password/reset`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          reset_token: resetToken,
-          new_password: newPassword,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
+      await authAPI.resetPassword(resetToken, newPassword);
 
       setSuccessMessage('Password changed successfully. Redirecting to login...');
       setTimeout(() => navigate('/login'), 1400);

@@ -6,7 +6,7 @@ import {
   Droplets, Mail, Shield, Award, ChevronRight, Pencil
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { authAPI, usersAPI, requestsAPI } from '../services/api';
+import { authAPI, usersAPI, requestsAPI, API_BASE_URL } from '../services/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 

@@ -1,5 +1,10 @@
 import express from 'express';
+import bcrypt from 'bcrypt';
+import pool from '../db.js';
+import { JWT_SECRET } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
+
+const router = express.Router();
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import pool from '../db.js';
@@ -39,7 +44,7 @@ router.post('/login', async (req, res) => {
         const token = jwt.sign(
             { adminId: admin.id, isAdmin: true, email: admin.email },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: process.env.JWT_EXPIRATION || '24h' }
         );
 
         return res.json({
