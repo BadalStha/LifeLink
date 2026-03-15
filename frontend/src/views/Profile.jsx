@@ -3,12 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   History, Settings, MapPin, LogOut, Loader2,
   HandHeart, ToggleLeft, ToggleRight, AlertTriangle, Heart,
-  Droplets, Mail, Shield, Award, ChevronRight, Pencil
+  Droplets, Mail, Shield, Award, ChevronRight, Pencil, BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, usersAPI, requestsAPI, API_BASE_URL } from '../services/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -243,9 +241,14 @@ export default function Profile() {
 
             {/* Info */}
             <div className="flex-1 min-w-0 text-center md:text-left pt-2 md:pt-0 pb-1">
-              <h1 className="text-2xl md:text-3xl font-black text-slate-900 truncate">
-                {profileData?.name || 'User'}
-              </h1>
+              <div className="flex items-center justify-center md:justify-start gap-1.5 min-w-0">
+                <h1 className="text-2xl md:text-3xl font-black text-slate-900 truncate">
+                  {profileData?.name || 'User'}
+                </h1>
+                {profileData?.verification_status === 'approved' && (
+                  <BadgeCheck size={22} className="text-blue-500 shrink-0" />
+                )}
+              </div>
               <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mt-2">
                 {profileData?.blood_type && (
                   <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 border border-red-100 px-2.5 py-0.5 rounded-full text-xs font-black">

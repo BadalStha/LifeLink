@@ -4,7 +4,6 @@ import {
   Activity,
   BadgeCheck,
   BarChart3,
-  Bell,
   Building2,
   CheckCircle2,
   ChevronDown,
@@ -14,9 +13,10 @@ import {
   Heart,
   Loader2,
   LogOut,
-  Megaphone,
   Menu,
+  Radio,
   Search,
+  Send,
   Settings,
   Shield,
   UserCheck,
@@ -40,8 +40,7 @@ const TABS = [
   { key: 'users', label: 'Users & Donors', icon: Users },
   { key: 'requests', label: 'Requests', icon: FileText },
   { key: 'hospitals', label: 'Hospitals', icon: Building2 },
-  { key: 'notifications', label: 'Notifications', icon: Bell },
-  { key: 'campaigns', label: 'Campaigns', icon: Megaphone },
+  { key: 'broadcast', label: 'Broadcast', icon: Radio },
   { key: 'analytics', label: 'Analytics', icon: BarChart3 },
   { key: 'reports', label: 'Reports', icon: Download },
   { key: 'settings', label: 'Settings', icon: Settings },
@@ -156,28 +155,6 @@ function SettingToggle({ label, value, onChange }) {
   );
 }
 
-function TemplateEditor({ template, onSave }) {
-  const [form, setForm] = useState(template);
-  useEffect(() => { setForm(template); }, [template]);
-
-  return (
-    <div className="border border-slate-200 rounded-xl p-4">
-      <p className="text-sm font-semibold text-slate-800 mb-3">{form.template_key}</p>
-      <div className="grid md:grid-cols-3 gap-3">
-        <input value={form.subject} onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))} className="md:col-span-2 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all" />
-        <select value={form.channel} onChange={(e) => setForm((p) => ({ ...p, channel: e.target.value }))} className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none">
-          <option value="email">Email</option>
-          <option value="sms">SMS</option>
-        </select>
-        <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} className="md:col-span-3 px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none min-h-[90px] transition-all" />
-      </div>
-      <button onClick={() => onSave(form)} className="mt-3 px-3.5 py-1.5 bg-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 transition-colors">
-        Save Template
-      </button>
-    </div>
-  );
-}
-
 function SimpleListCard({ title, items, itemKey }) {
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5">
@@ -280,7 +257,6 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [requests, setRequests] = useState([]);
   const [hospitals, setHospitals] = useState([]);
-  const [templates, setTemplates] = useState([]);
   const [logs, setLogs] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [settingsData, setSettingsData] = useState({ settings: {}, admin_accounts: [] });
@@ -293,20 +269,9 @@ export default function Admin() {
   const [selectedUserProfile, setSelectedUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  const [broadcastForm, setBroadcastForm] = useState({
-    subject: 'Emergency Alert',
-    message: '',
-    urgency: 'high',
-    channel: 'email',
-    target_audience: 'all_users',
-  });
-
-  const [announcementForm, setAnnouncementForm] = useState({
-    title: '',
-    content: '',
-    image_url: '',
-    is_published: true,
-  });
+  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', expires_at: '', channels: ['notification', 'email'] });
+  const [broadcastPreview, setBroadcastPreview] = useState(false);
+  const [broadcastStatus, setBroadcastStatus] = useState(null); // { type: 'success'|'error', text: '' }
 
   const [hospitalEdit, setHospitalEdit] = useState(null);
   const [showCreateHospital, setShowCreateHospital] = useState(false);
@@ -323,12 +288,11 @@ export default function Admin() {
       setIsRefreshing(true);
       setError('');
 
-      const [overviewData, usersData, requestsData, hospitalsData, templatesData, logsData, announcementsData, settingsResp] = await Promise.all([
+      const [overviewData, usersData, requestsData, hospitalsData, logsData, announcementsData, settingsResp] = await Promise.all([
         adminAPI.getOverview(),
         adminAPI.getUsers({ search: searchQuery, role: roleFilter, status: statusFilter, limit: 100 }),
         adminAPI.getRequests({ status: requestStatusFilter, limit: 100 }),
         adminAPI.getHospitals(),
-        adminAPI.getTemplates(),
         adminAPI.getNotificationLogs(),
         adminAPI.getAnnouncements(),
         adminAPI.getSettings(),
@@ -338,7 +302,6 @@ export default function Admin() {
       setUsers(usersData.users || []);
       setRequests(requestsData.requests || []);
       setHospitals(hospitalsData.hospitals || []);
-      setTemplates(templatesData.templates || []);
       setLogs(logsData.logs || []);
       setAnnouncements(announcementsData.announcements || []);
       setSettingsData(settingsResp || { settings: {}, admin_accounts: [] });
@@ -400,18 +363,6 @@ export default function Admin() {
     }
   };
 
-  const matchRequest = async (requestId) => {
-    const donorId = window.prompt('Enter donor ID to match:');
-    if (!donorId) return;
-    try {
-      await adminAPI.matchDonor(requestId, Number(donorId));
-      alert('Donor matched and alert logged.');
-      await loadAll();
-    } catch (err) {
-      alert(err.message || 'Failed to match donor');
-    }
-  };
-
   const toggleHospital = async (hospital) => {
     try {
       await adminAPI.updateHospitalStatus(hospital.id, !hospital.is_active);
@@ -448,46 +399,34 @@ export default function Admin() {
 
   const sendBroadcast = async (e) => {
     e.preventDefault();
+    setBroadcastStatus(null);
+    const { channels } = broadcastForm;
+    const channelLabels = { notification: 'notification', announcement: 'homepage announcement', email: 'email' };
     try {
       await adminAPI.sendBroadcast(broadcastForm);
-      setBroadcastForm((prev) => ({ ...prev, message: '' }));
+      setBroadcastForm({ title: '', message: '', expires_at: '', channels: ['notification', 'email'] });
+      setBroadcastPreview(false);
+      const sent = channels.map((c) => channelLabels[c] || c).join(', ');
+      setBroadcastStatus({ type: 'success', text: `Broadcast sent via: ${sent}.` });
       await loadAll();
-      alert('Emergency broadcast sent.');
     } catch (err) {
-      alert(err.message || 'Failed to send broadcast');
+      setBroadcastPreview(false);
+      setBroadcastStatus({ type: 'error', text: err.message || 'Failed to send broadcast' });
     }
   };
 
-  const saveTemplate = async (template) => {
+  const clearBroadcastHistory = async () => {
+    if (!window.confirm('Delete all broadcast history? This cannot be undone.')) return;
     try {
-      await adminAPI.saveTemplate(template.template_key, {
-        subject: template.subject,
-        body: template.body,
-        channel: template.channel,
-      });
+      await adminAPI.clearNotificationLogs();
       await loadAll();
     } catch (err) {
-      alert(err.message || 'Failed to save template');
+      alert(err.message || 'Failed to clear broadcast history');
     }
   };
 
-  const createAnnouncement = async (e) => {
-    e.preventDefault();
-    if (!announcementForm.title || !announcementForm.content) {
-      alert('Title and content are required.');
-      return;
-    }
-    try {
-      await adminAPI.createAnnouncement(announcementForm);
-      setAnnouncementForm({ title: '', content: '', image_url: '', is_published: true });
-      await loadAll();
-    } catch (err) {
-      alert(err.message || 'Failed to create campaign');
-    }
-  };
-
-  const removeAnnouncement = async (id) => {
-    if (!window.confirm('Delete this announcement?')) return;
+  const deleteAnnouncement = async (id) => {
+    if (!window.confirm('Remove this announcement from the home page?')) return;
     try {
       await adminAPI.deleteAnnouncement(id);
       await loadAll();
@@ -646,10 +585,15 @@ export default function Admin() {
                 </div>
                 <p className="text-sm text-slate-600 mt-3 leading-relaxed">{r.reason || 'No reason provided.'}</p>
                 <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-100">
-                  <button onClick={() => updateRequestStatus(r.id, 'fulfilled')} className="px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md transition-colors">Fulfill</button>
-                  <button onClick={() => updateRequestStatus(r.id, 'open')} className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md transition-colors">Reopen</button>
-                  <button onClick={() => updateRequestStatus(r.id, 'cancelled')} className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors">Close</button>
-                  <button onClick={() => matchRequest(r.id)} className="px-3 py-1.5 text-xs font-medium bg-amber-50 text-amber-700 hover:bg-amber-100 rounded-md transition-colors">Match Donor</button>
+                  {r.status !== 'fulfilled' && (
+                    <button onClick={() => updateRequestStatus(r.id, 'fulfilled')} className="px-3 py-1.5 text-xs font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded-md transition-colors">Fulfill</button>
+                  )}
+                  {r.status !== 'open' && (
+                    <button onClick={() => updateRequestStatus(r.id, 'open')} className="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-md transition-colors">Reopen</button>
+                  )}
+                  {r.status !== 'cancelled' && (
+                    <button onClick={() => updateRequestStatus(r.id, 'cancelled')} className="px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md transition-colors">Close</button>
+                  )}
                 </div>
               </div>
             ))}
@@ -763,107 +707,211 @@ export default function Admin() {
       );
     }
 
-    // ---- NOTIFICATIONS ----
-    if (activeTab === 'notifications') {
+    // ---- BROADCAST ----
+    if (activeTab === 'broadcast') {
       return (
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4">Emergency Broadcast</h3>
-            <form onSubmit={sendBroadcast} className="grid sm:grid-cols-2 gap-3">
-              <input value={broadcastForm.subject} onChange={(e) => setBroadcastForm((p) => ({ ...p, subject: e.target.value }))} className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none" placeholder="Subject" />
-              <select value={broadcastForm.channel} onChange={(e) => setBroadcastForm((p) => ({ ...p, channel: e.target.value }))} className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none">
-                <option value="email">Email</option>
-                <option value="sms">SMS</option>
-              </select>
-              <select value={broadcastForm.urgency} onChange={(e) => setBroadcastForm((p) => ({ ...p, urgency: e.target.value }))} className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none">
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-              <select value={broadcastForm.target_audience} onChange={(e) => setBroadcastForm((p) => ({ ...p, target_audience: e.target.value }))} className="px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none">
-                <option value="all_users">All Users</option>
-                <option value="donors">Donors</option>
-                <option value="patients">Recipients</option>
-              </select>
-              <textarea value={broadcastForm.message} onChange={(e) => setBroadcastForm((p) => ({ ...p, message: e.target.value }))} className="sm:col-span-2 px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none min-h-[120px] transition-all" placeholder="Type your emergency message..." />
-              <button className="sm:col-span-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors">Send Broadcast</button>
-            </form>
-          </div>
-
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4">Templates</h3>
-            <div className="space-y-3">
-              {templates.map((t) => (
-                <TemplateEditor key={t.id} template={t} onSave={saveTemplate} />
-              ))}
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-9 h-9 bg-red-50 rounded-lg flex items-center justify-center">
+                <Send size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900">Send Broadcast</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Send an in-app notification, homepage announcement, or email to all users</p>
+              </div>
             </div>
+
+            {broadcastStatus && (
+              <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${broadcastStatus.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                {broadcastStatus.text}
+              </div>
+            )}
+
+            <form onSubmit={(e) => { e.preventDefault(); setBroadcastPreview(true); }} className="space-y-3">
+              <input
+                value={broadcastForm.title}
+                onChange={(e) => setBroadcastForm((p) => ({ ...p, title: e.target.value }))}
+                required
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+                placeholder="Broadcast title"
+              />
+              <textarea
+                value={broadcastForm.message}
+                onChange={(e) => setBroadcastForm((p) => ({ ...p, message: e.target.value }))}
+                required
+                className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none min-h-[140px] transition-all"
+                placeholder="Write your message to all users..."
+              />
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">Expires at <span className="text-slate-400 font-normal">(leave blank for no expiry)</span></label>
+                <input
+                  type="datetime-local"
+                  value={broadcastForm.expires_at}
+                  onChange={(e) => setBroadcastForm((p) => ({ ...p, expires_at: e.target.value }))}
+                  min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-600 mb-2">Send via</label>
+                <div className="flex flex-wrap gap-4">
+                  {[
+                    { key: 'notification', label: 'Notification', desc: 'In-app alert for all users' },
+                    { key: 'announcement', label: 'Announcement', desc: 'Shown on the homepage' },
+                    { key: 'email', label: 'Email', desc: 'Sent to all active users' },
+                  ].map(({ key, label, desc }) => (
+                    <label key={key} className="flex items-start gap-2.5 cursor-pointer select-none group">
+                      <input
+                        type="checkbox"
+                        checked={broadcastForm.channels.includes(key)}
+                        onChange={(e) => {
+                          setBroadcastForm((p) => ({
+                            ...p,
+                            channels: e.target.checked
+                              ? [...p.channels, key]
+                              : p.channels.filter((c) => c !== key),
+                          }));
+                        }}
+                        className="mt-0.5 w-4 h-4 rounded border-slate-300 accent-slate-900 cursor-pointer"
+                      />
+                      <span>
+                        <span className="text-sm font-medium text-slate-800 group-hover:text-slate-900">{label}</span>
+                        <span className="block text-xs text-slate-400">{desc}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {broadcastForm.channels.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1.5">Select at least one channel.</p>
+                )}
+              </div>
+              <button
+                type="submit"
+                disabled={broadcastForm.channels.length === 0}
+                className="w-full px-4 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                <ChevronRight size={15} />
+                Preview Broadcast
+              </button>
+            </form>
+
+            {broadcastPreview && (
+              <div className="mt-4 rounded-xl border-2 border-red-200 bg-red-50 p-5">
+                <p className="text-xs font-semibold text-red-500 uppercase tracking-wider mb-3">Preview — this is what users will see</p>
+                <p className="font-semibold text-slate-900 text-sm">{broadcastForm.title}</p>
+                <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap leading-relaxed">{broadcastForm.message}</p>
+                {broadcastForm.expires_at && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    Expires: {new Date(broadcastForm.expires_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                )}
+                {!broadcastForm.expires_at && (
+                  <p className="text-xs text-slate-400 mt-2">No expiry — permanent broadcast</p>
+                )}
+                <div className="flex flex-wrap items-center gap-1.5 mt-3">
+                  <span className="text-xs text-slate-500 font-medium">Sending via:</span>
+                  {broadcastForm.channels.map((ch) => (
+                    <span key={ch} className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-900 text-white capitalize">{ch}</span>
+                  ))}
+                </div>
+                <div className="flex gap-2 mt-4">
+                  <button onClick={sendBroadcast} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
+                    <Send size={14} />
+                    Send to All Users
+                  </button>
+                  <button onClick={() => setBroadcastPreview(false)} className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-sm font-semibold transition-colors">
+                    Edit
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-800">Delivery Logs</h3>
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">Active Announcements</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Showing on the home page — remove to hide from public</p>
+              </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Time</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Channel</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Audience</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</th>
-                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {logs.map((log) => (
-                    <tr key={log.id} className="hover:bg-slate-50/60">
-                      <td className="px-4 py-2.5 text-slate-600">{formatDate(log.created_at)}</td>
-                      <td className="px-4 py-2.5"><Badge>{log.channel}</Badge></td>
-                      <td className="px-4 py-2.5 text-slate-600">{log.target_audience || '-'}</td>
-                      <td className="px-4 py-2.5 text-slate-600">{log.subject || '-'}</td>
-                      <td className="px-4 py-2.5"><Badge variant="green">{log.status}</Badge></td>
+            {announcements.length === 0 ? (
+              <p className="text-center py-8 text-slate-400 text-sm">No announcements currently on the home page.</p>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {announcements.map((ann) => (
+                  <div key={ann.id} className="px-5 py-4 flex items-start justify-between gap-4 hover:bg-slate-50/60">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-900">{ann.title}</p>
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{ann.content}</p>
+                      <p className="text-xs text-slate-400 mt-1">{ann.author_name || 'Unknown'} · {formatDate(ann.created_at)}</p>
+                    </div>
+                    <button
+                      onClick={() => deleteAnnouncement(ann.id)}
+                      className="shrink-0 text-xs font-medium text-red-600 hover:text-red-700 px-2.5 py-1 rounded-md hover:bg-red-50 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-slate-800">Broadcast History</h3>
+              {logs.length > 0 && (
+                <button
+                  onClick={clearBroadcastHistory}
+                  className="text-xs font-medium text-red-600 hover:text-red-700 px-2.5 py-1 rounded-md hover:bg-red-50 transition-colors"
+                >
+                  Clear History
+                </button>
+              )}
+            </div>
+            {logs.length === 0 ? (
+              <p className="text-center py-10 text-slate-400 text-sm">No broadcasts sent yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Time</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Via</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Expires</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // ---- CAMPAIGNS ----
-    if (activeTab === 'campaigns') {
-      return (
-        <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-slate-800 mb-4">New Campaign</h3>
-            <form onSubmit={createAnnouncement} className="space-y-3">
-              <input value={announcementForm.title} onChange={(e) => setAnnouncementForm((p) => ({ ...p, title: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all" placeholder="Campaign title" />
-              <textarea value={announcementForm.content} onChange={(e) => setAnnouncementForm((p) => ({ ...p, content: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none min-h-[120px] transition-all" placeholder="Campaign content" />
-              <input value={announcementForm.image_url} onChange={(e) => setAnnouncementForm((p) => ({ ...p, image_url: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-slate-900 focus:outline-none transition-all" placeholder="Image URL (optional)" />
-              <div className="flex items-center justify-between">
-                <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 cursor-pointer">
-                  <input type="checkbox" checked={announcementForm.is_published} onChange={(e) => setAnnouncementForm((p) => ({ ...p, is_published: e.target.checked }))} className="rounded border-slate-300" />
-                  Publish immediately
-                </label>
-                <button className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold hover:bg-slate-800 transition-colors">Publish</button>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {logs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-50/60">
+                        <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">{formatDate(log.created_at)}</td>
+                        <td className="px-4 py-2.5 text-slate-800 font-medium">{log.subject || '-'}</td>
+                        <td className="px-4 py-2.5">
+                          <div className="flex flex-wrap gap-1">
+                            {(log.channel || 'email').split(',').map((ch) => (
+                              <span key={ch} className="text-xs font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 capitalize">{ch.trim()}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-2.5 whitespace-nowrap">
+                          {log.expires_at ? (
+                            <span className={`text-xs font-medium ${new Date(log.expires_at) < new Date() ? 'text-slate-400' : 'text-amber-600'}`}>
+                              {new Date(log.expires_at) < new Date() ? 'Expired ' : ''}{formatDate(log.expires_at)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400">Never</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5"><Badge variant="green">{log.status}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            </form>
-          </div>
-
-          <div className="space-y-3">
-            {announcements.map((a) => (
-              <div key={a.id} className="bg-white rounded-xl border border-slate-200 p-5 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-900">{a.title}</p>
-                  <p className="text-sm text-slate-500 mt-1 line-clamp-2">{a.content}</p>
-                  <p className="text-xs text-slate-400 mt-2">{formatDate(a.created_at)}</p>
-                </div>
-                <button onClick={() => removeAnnouncement(a.id)} className="shrink-0 px-3 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors">Delete</button>
-              </div>
-            ))}
+            )}
           </div>
         </div>
       );
@@ -954,7 +1002,7 @@ export default function Admin() {
         </div>
       </div>
     );
-  }, [activeTab, users, requests, hospitals, templates, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, requestStatusFilter, broadcastForm, announcementForm, hospitalEdit]);
+  }, [activeTab, users, requests, hospitals, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, requestStatusFilter, broadcastForm, broadcastStatus, broadcastPreview, hospitalEdit, showCreateHospital, createHospitalForm, createHospitalError, createHospitalSuccess]);
 
   /* ---------- loading state ---------- */
 

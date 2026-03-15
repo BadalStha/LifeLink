@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Send, Search, MessageCircle, Loader2,
-  User, CheckCheck, Clock, ArrowRight
+  User, CheckCheck, Clock, ArrowRight, BadgeCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { messagesAPI, usersAPI, API_BASE_URL } from '../services/api';
@@ -109,6 +109,7 @@ export default function Chat() {
   const [activeConvId, setActiveConvId] = useState(searchParams.get('to') || null);
   const [activeConvName, setActiveConvName] = useState('');
   const [activeConvPic, setActiveConvPic] = useState(null);
+  const [activeConvVerified, setActiveConvVerified] = useState(false);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoadingConvs, setIsLoadingConvs] = useState(true);
@@ -180,6 +181,7 @@ export default function Chat() {
       if (data?.user?.name) {
         setActiveConvName(data.user.name);
         setActiveConvPic(data.user.profile_picture || null);
+        setActiveConvVerified(data.user.verification_status === 'approved');
       }
     } catch (err) {
       console.error('Failed to resolve conversation name:', err);
@@ -202,8 +204,12 @@ export default function Chat() {
     setActiveConvId(String(conv.partner_id));
     setActiveConvName(conv.partner_name || '');
     setActiveConvPic(conv.partner_profile_picture || null);
+    setActiveConvVerified(false);
     setMessages([]);
     setError('');
+    usersAPI.getById(conv.partner_id).then(data => {
+      setActiveConvVerified(data?.user?.verification_status === 'approved');
+    }).catch(() => {});
   };
 
   const sendMessage = async (e) => {
@@ -240,6 +246,7 @@ export default function Chat() {
     setActiveConvId(String(u.id));
     setActiveConvName(u.name || 'User');
     setActiveConvPic(u.profile_picture || null);
+    setActiveConvVerified(u.verification_status === 'approved');
     setSearchUser('');
     setSearchResults([]);
     setMessages([]);
@@ -339,7 +346,10 @@ export default function Chat() {
               </button>
               <Avatar name={activeConvName} picPath={activeConvPic} size={10} textSize="text-sm" />
               <div>
-                <p className="font-black text-slate-800">{activeConvName || 'User'}</p>
+                <div className="flex items-center gap-1">
+                  <p className="font-black text-slate-800">{activeConvName || 'User'}</p>
+                  {activeConvVerified && <BadgeCheck size={16} className="text-blue-500 shrink-0" />}
+                </div>
                 <p className="text-xs text-slate-500">Donor — LifeLink Member</p>
               </div>
             </div>

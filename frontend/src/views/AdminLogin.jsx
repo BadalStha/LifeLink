@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff, ArrowRight, Shield, ChevronLeft, Activity, Users, Heart } from 'lucide-react';
 import { adminAPI } from '../services/api';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
 export default function AdminLogin() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -20,10 +18,6 @@ export default function AdminLogin() {
 
     try {
       const data = await adminAPI.login(email, password);
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid credentials');
-      }
 
       localStorage.setItem('adminToken', data.token);
       localStorage.setItem('isAdmin', 'true');
@@ -61,40 +55,6 @@ export default function AdminLogin() {
               <Heart size={20} className="text-white" fill="white" />
             </div>
             <span className="text-white text-xl font-bold tracking-tight">LifeLink</span>
-          </div>
-        </div>
-
-        {/* Middle — Headline */}
-        <div className="relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 bg-red-600/20 border border-red-500/30 rounded-full px-4 py-1.5">
-            <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-            <span className="text-red-300 text-xs font-semibold tracking-widest uppercase">Admin Portal</span>
-          </div>
-
-          <h2 className="text-4xl font-black text-white leading-tight">
-            Manage Nepal's<br />
-            Lifesaving Network
-          </h2>
-          <p className="text-slate-400 text-base leading-relaxed max-w-xs">
-            Centralized control for blood and organ donation operations across all districts.
-          </p>
-
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-4 pt-4">
-            {[
-              { icon: Users, label: 'Donors', value: '12,400+' },
-              { icon: Activity, label: 'Requests', value: '3,200+' },
-              { icon: Heart, label: 'Districts', value: '77' },
-            ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-1">
-                <Icon size={16} className="text-red-400" />
-                <p className="text-white font-bold text-lg">{value}</p>
-                <p className="text-slate-500 text-xs">{label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
           </div>
         </div>
 

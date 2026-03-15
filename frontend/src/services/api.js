@@ -364,6 +364,13 @@ export const adminAPI = {
     return handleResponse(response);
   },
 
+  clearNotificationLogs: async () => {
+    const response = await adminFetch(`${API_BASE_URL}/api/admin/notification-logs`, {
+      method: 'DELETE',
+    });
+    return handleResponse(response);
+  },
+
   getAnnouncements: async () => {
     const response = await adminFetch(`${API_BASE_URL}/api/admin/announcements`);
     return handleResponse(response);

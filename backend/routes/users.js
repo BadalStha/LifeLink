@@ -11,9 +11,6 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const router = express.Router();
 
 // Multer config for avatar uploads
@@ -38,55 +35,6 @@ const uploadAvatar = multer({
             cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
         }
     },
-});
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-const uploadAvatar = multer({
-    storage: avatarStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (/^image\/(jpeg|jpg|png|webp|gif)$/.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
-        }
-    },
-});
-
-// POST /api/profile/avatar - Upload profile picture
-router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No image file provided' });
-    }
-
-    const profilePicturePath = `/uploads/avatars/${req.file.filename}`;
-
-    try {
-        // Delete old avatar file if it exists (best-effort cleanup)
-        const existing = await pool.query('SELECT profile_picture FROM users WHERE id = $1', [req.userId]);
-        const oldPath = existing.rows[0]?.profile_picture;
-        if (oldPath) {
-            fs.unlink(path.join(__dirname, '..', oldPath), () => {});
-        }
-
-        const result = await pool.query(
-            'UPDATE users SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING profile_picture',
-            [profilePicturePath, req.userId]
-        );
-
-        res.json({ message: 'Profile picture updated', profile_picture: result.rows[0].profile_picture });
-    } catch (err) {
-        console.error('Avatar upload error:', err);
-        res.status(500).json({ error: 'Failed to save profile picture' });
-    }
 });
 
 // POST /api/profile/avatar - Upload profile picture
@@ -190,10 +138,12 @@ router.get('/users/:userId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT id, email, role, name, phone, address, city, state, country, blood_type, age,
-                    donation_type, donation_organ, medical_history, profile_picture, is_active, created_at
-             FROM users
-             WHERE id = $1 AND is_active = true`,
+            `SELECT u.id, u.email, u.role, u.name, u.phone, u.address, u.city, u.state, u.country, u.blood_type, u.age,
+                    u.donation_type, u.donation_organ, u.medical_history, u.profile_picture, u.is_active, u.created_at,
+                    COALESCE(r.status, 'pending') AS verification_status
+             FROM users u
+             LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+             WHERE u.id = $1 AND u.is_active = true`,
             [userId]
         );
 
@@ -297,9 +247,11 @@ router.get('/search', async (req, res) => {
     }
 
     try {
-        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at, profile_picture, phone, address, state, country, medical_history
-                     FROM users
-                     WHERE is_active = true`;
+        let query = `SELECT u.id, u.email, u.role, u.name, u.city, u.blood_type, u.age, u.donation_type, u.donation_organ AS organ_type, u.is_active, u.created_at, u.profile_picture, u.phone, u.address, u.state, u.country, u.medical_history,
+                            COALESCE(r.status, 'pending') AS verification_status
+                     FROM users u
+                     LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+                     WHERE u.is_active = true`;
         const params = [];
         let paramCount = 1;
 
@@ -530,6 +482,19 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             [req.userId, parsedLimit]
         );
 
+        // Broadcast notifications — created_by IS NULL means sent from admin panel
+        const broadcastAlertsResult = await pool.query(
+            `SELECT id, message, urgency, created_at
+             FROM alerts
+             WHERE alert_type = 'system_alert'
+               AND created_by IS NULL
+               AND (target_audience = 'all_users' OR target_audience IS NULL)
+               AND (expires_at IS NULL OR expires_at > NOW())
+             ORDER BY created_at DESC
+             LIMIT $1`,
+            [parsedLimit]
+        );
+
         const requestAlertsResult = await pool.query(
             `SELECT
                 a.id,
@@ -595,6 +560,22 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             reference_id: row.id
         }));
 
+        const broadcastNotifications = broadcastAlertsResult.rows.map((row) => {
+            const colonIdx = row.message.indexOf(': ');
+            const title = colonIdx !== -1 ? row.message.slice(0, colonIdx) : 'LifeLink Announcement';
+            const body = colonIdx !== -1 ? row.message.slice(colonIdx + 2) : row.message;
+            return {
+                id: `broadcast-${row.id}`,
+                type: 'broadcast',
+                title,
+                body,
+                created_at: row.created_at,
+                is_unread: true,
+                urgency: row.urgency,
+                reference_id: row.id
+            };
+        });
+
         const requestNotifications = myRequestsResult.rows.map((row) => {
             const requestLabel = row.request_type === 'blood'
                 ? `Blood request${row.blood_type ? ` (${row.blood_type})` : ''}`
@@ -657,6 +638,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
 
         const notifications = [
             ...messageNotifications,
+            ...broadcastNotifications,
             ...alertNotifications,
             ...requestNotifications,
             ...mergedCommunityRequestNotifications
@@ -671,7 +653,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             unread_count,
             counts: {
                 messages: messageNotifications.filter((item) => item.is_unread).length,
-                alerts: alertNotifications.length,
+                alerts: alertNotifications.length + broadcastNotifications.length,
                 requests: requestNotifications.length + mergedCommunityRequestNotifications.length
             }
         });

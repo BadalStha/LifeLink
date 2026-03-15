@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Droplet, Heart, MapPin, Phone, Mail, FileText,
-  Calendar, Loader2, AlertCircle, Droplets, MessageCircle, Shield, Clock, User
+  Calendar, Loader2, AlertCircle, Droplets, MessageCircle, Shield, Clock, User, BadgeCheck
 } from 'lucide-react';
 import { usersAPI, API_BASE_URL } from '../services/api';
 
@@ -143,7 +143,12 @@ export default function DonorProfile() {
               </div>
             )}
             <div className="text-center sm:text-left pb-1">
-              <h1 className="text-3xl md:text-4xl font-black text-white mb-3">{donor.name || 'Anonymous Donor'}</h1>
+              <div className="flex items-center gap-2 mb-3">
+                <h1 className="text-3xl md:text-4xl font-black text-white">{donor.name || 'Anonymous Donor'}</h1>
+                {donor.verification_status === 'approved' && (
+                  <BadgeCheck size={28} className="text-blue-300 shrink-0" />
+                )}
+              </div>
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                 <span
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${

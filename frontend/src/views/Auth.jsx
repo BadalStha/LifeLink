@@ -31,13 +31,6 @@ export default function Auth() {
     try {
       if (isLogin) {
         const loginData = await authAPI.login(formData.email, formData.password);
-        const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: formData.email, password: formData.password }),
-        });
-        if (!loginResponse.ok) throw new Error(await getErrorMessage(loginResponse));
-        const loginData = await loginResponse.json();
         login(loginData.user, loginData.token);
         navigate('/');
         return;
@@ -49,7 +42,6 @@ export default function Auth() {
         name: formData.name,
         role: 'user',
       });
-      if (!registerResponse.ok) throw new Error(await getErrorMessage(registerResponse));
 
       setSuccessMessage(`Account created! You can now sign in with ${formData.email}`);
       setTimeout(() => {
