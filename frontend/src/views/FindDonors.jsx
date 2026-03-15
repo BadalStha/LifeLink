@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Droplet, Heart, Filter, Loader2,
-  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation, Droplets
+  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation, Droplets, Eye, BadgeCheck
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
@@ -350,7 +350,12 @@ function DonorCard({ donor, navigate }) {
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <h3 className="font-black text-slate-800 truncate">{donor.name || 'Anonymous Donor'}</h3>
+            <div className="flex items-center gap-1 min-w-0">
+              <h3 className="font-black text-slate-800 truncate">{donor.name || 'Anonymous Donor'}</h3>
+              {donor.verification_status === 'approved' && (
+                <BadgeCheck size={16} className="text-blue-500 shrink-0" />
+              )}
+            </div>
             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${donor.is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
               {donor.is_active ? 'Available' : 'Unavailable'}
             </span>

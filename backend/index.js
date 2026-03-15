@@ -244,7 +244,7 @@ const ensurePasswordResetTable = async () => {
 const buildEmailTransport = () => {
     const host = process.env.SMTP_HOST;
     const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    const pass = process.env.SMTP_PASSWORD || process.env.SMTP_PASS;
     const port = Number(process.env.SMTP_PORT || 587);
     const secure = String(process.env.SMTP_SECURE || 'false') === 'true';
 
@@ -571,7 +571,11 @@ app.post('/api/forgot-password/reset', async (req, res) => {
 app.get('/api/profile', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ, is_active, created_at, profile_picture FROM users WHERE id = $1',
+            `SELECT u.id, u.email, u.role, u.name, u.phone, u.address, u.city, u.state, u.country, u.blood_type, u.age, u.medical_history, u.donation_type, u.donation_organ, u.is_active, u.created_at, u.profile_picture,
+                    COALESCE(r.status, 'pending') AS verification_status
+             FROM users u
+             LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+             WHERE u.id = $1`,
             [req.userId]
         );
 

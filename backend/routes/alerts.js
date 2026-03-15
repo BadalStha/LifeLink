@@ -71,7 +71,7 @@ router.get('/alerts', async (req, res) => {
             SELECT a.*, u.name as created_by_name
             FROM alerts a
             LEFT JOIN users u ON a.created_by = u.id
-            WHERE 1=1
+            WHERE (a.expires_at IS NULL OR a.expires_at > NOW())
         `;
         const params = [];
         let paramCount = 1;

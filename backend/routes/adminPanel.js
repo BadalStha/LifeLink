@@ -1,9 +1,20 @@
 import bcrypt from 'bcrypt';
 import express from 'express';
+import nodemailer from 'nodemailer';
 import pool from '../db.js';
 import { verifyAdminToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+const mailer = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+    },
+});
 
 const ensureAdminTables = async () => {
     await pool.query(`
@@ -31,7 +42,7 @@ const ensureAdminTables = async () => {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS notification_logs (
             id SERIAL PRIMARY KEY,
-            channel VARCHAR(20) NOT NULL,
+            channel VARCHAR(100) NOT NULL,
             target_audience VARCHAR(50),
             subject VARCHAR(255),
             message TEXT NOT NULL,
@@ -66,6 +77,12 @@ const ensureAdminTables = async () => {
          ('default_broadcast_channel', 'email')
          ON CONFLICT (key) DO NOTHING`
     );
+
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS fulfillment_date DATE`);
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`);
+    await pool.query(`ALTER TABLE notification_logs ALTER COLUMN channel TYPE VARCHAR(100)`);
 };
 
 router.use(verifyAdminToken);
@@ -369,12 +386,7 @@ router.patch('/requests/:id/status', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `UPDATE donation_requests
-             SET status = $2,
-                 fulfillment_date = CASE WHEN $2 = 'fulfilled' THEN CURRENT_DATE ELSE fulfillment_date END,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1
-             RETURNING *`,
+            `UPDATE donation_requests SET status = $2 WHERE id = $1 RETURNING *`,
             [requestId, status]
         );
 
@@ -382,10 +394,17 @@ router.patch('/requests/:id/status', async (req, res) => {
             return res.status(404).json({ error: 'Request not found' });
         }
 
+        if (status === 'cancelled' || status === 'fulfilled') {
+            await pool.query(
+                `DELETE FROM alerts WHERE related_request_id = $1`,
+                [requestId]
+            );
+        }
+
         res.json({ message: 'Request status updated', request: result.rows[0] });
     } catch (err) {
         console.error('Admin request status update error:', err);
-        res.status(500).json({ error: 'Failed to update request status' });
+        res.status(500).json({ error: err.message || 'Failed to update request status' });
     }
 });
 
@@ -562,35 +581,94 @@ router.put('/hospitals/:id', async (req, res) => {
 });
 
 router.post('/broadcast', async (req, res) => {
-    const {
-        message,
-        urgency = 'high',
-        target_audience = 'all_users',
-        channel = 'email',
-        subject = 'Emergency Alert'
-    } = req.body;
+    const { title, message, expires_at, channels = ['notification', 'email'] } = req.body;
 
-    if (!message) {
-        return res.status(400).json({ error: 'message is required' });
+    if (!title || !message) {
+        return res.status(400).json({ error: 'title and message are required' });
+    }
+
+    const validChannels = ['notification', 'announcement', 'email'];
+    const selectedChannels = (Array.isArray(channels) ? channels : []).filter((c) => validChannels.includes(c));
+    if (selectedChannels.length === 0) {
+        return res.status(400).json({ error: 'at least one valid channel is required (notification, announcement, email)' });
+    }
+
+    let resolvedExpiresAt = null;
+    if (expires_at) {
+        const d = new Date(expires_at);
+        if (Number.isNaN(d.getTime())) {
+            return res.status(400).json({ error: 'expires_at must be a valid date-time' });
+        }
+        if (d <= new Date()) {
+            return res.status(400).json({ error: 'expires_at must be in the future' });
+        }
+        resolvedExpiresAt = d.toISOString();
     }
 
     try {
         await ensureAdminTables();
 
-        const alertResult = await pool.query(
-            `INSERT INTO alerts (created_by, alert_type, message, urgency, target_audience)
-             VALUES (NULL, 'system_alert', $1, $2, $3)
-             RETURNING *`,
-            [message, urgency, target_audience]
-        );
+        // In-app notification alert
+        if (selectedChannels.includes('notification')) {
+            await pool.query(
+                `INSERT INTO alerts (created_by, alert_type, message, urgency, target_audience, expires_at)
+                 VALUES (NULL, 'system_alert', $1, 'high', 'all_users', $2)`,
+                [`${title}: ${message}`, resolvedExpiresAt]
+            );
+        }
 
+        // Homepage announcement
+        if (selectedChannels.includes('announcement')) {
+            const fallbackAdmin = req.adminId
+                ? { rows: [{ id: req.adminId }] }
+                : await pool.query(`SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1`);
+            const createdBy = fallbackAdmin.rows[0]?.id;
+
+            if (!createdBy) {
+                return res.status(400).json({ error: 'No admin account found to publish announcement' });
+            }
+
+            await pool.query(
+                `INSERT INTO announcements (created_by, title, content, is_published)
+                 VALUES ($1, $2, $3, true)`,
+                [createdBy, title, message]
+            );
+        }
+
+        // Log the broadcast
         await pool.query(
-            `INSERT INTO notification_logs (channel, target_audience, subject, message, status, created_by)
-             VALUES ($1, $2, $3, $4, 'sent', $5)`,
-            [channel, target_audience, subject, message, req.adminEmail || 'admin']
+            `INSERT INTO notification_logs (channel, target_audience, subject, message, status, created_by, expires_at)
+             VALUES ($1, 'all_users', $2, $3, 'sent', $4, $5)`,
+            [selectedChannels.join(','), title, message, req.adminEmail || 'admin', resolvedExpiresAt]
         );
 
-        res.status(201).json({ message: 'Emergency broadcast sent', alert: alertResult.rows[0] });
+        // Send emails
+        let recipients = 0;
+        if (selectedChannels.includes('email')) {
+            const usersResult = await pool.query(
+                `SELECT email, name FROM users WHERE is_active = true AND role != 'admin'`
+            );
+            recipients = usersResult.rows.length;
+
+            const emailPromises = usersResult.rows.map((user) =>
+                mailer.sendMail({
+                    from: process.env.SMTP_FROM,
+                    to: user.email,
+                    subject: title,
+                    text: message,
+                    html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto">
+                    <h2 style="color:#dc2626">${title}</h2>
+                    <p style="color:#374151;line-height:1.6">${message}</p>
+                    <hr style="border-color:#e5e7eb;margin:24px 0">
+                    <p style="color:#9ca3af;font-size:12px">This message was sent by LifeLink Nepal admin.</p>
+                  </div>`,
+                }).catch((err) => console.error(`Email failed for ${user.email}:`, err))
+            );
+
+            await Promise.all(emailPromises);
+        }
+
+        res.status(201).json({ message: 'Broadcast sent', recipients, channels: selectedChannels, expires_at: resolvedExpiresAt });
     } catch (err) {
         console.error('Admin broadcast error:', err);
         res.status(500).json({ error: 'Failed to send broadcast' });
@@ -654,6 +732,20 @@ router.get('/notification-logs', async (req, res) => {
     } catch (err) {
         console.error('Admin logs list error:', err);
         res.status(500).json({ error: 'Failed to load notification logs' });
+    }
+});
+
+router.delete('/notification-logs', async (req, res) => {
+    try {
+        await pool.query(`DELETE FROM notification_logs`);
+        // Also remove broadcast alerts created from the admin panel (created_by IS NULL, system_alert)
+        await pool.query(
+            `DELETE FROM alerts WHERE alert_type = 'system_alert' AND created_by IS NULL`
+        );
+        res.json({ message: 'Broadcast history cleared' });
+    } catch (err) {
+        console.error('Admin clear logs error:', err);
+        res.status(500).json({ error: 'Failed to clear broadcast history' });
     }
 });
 

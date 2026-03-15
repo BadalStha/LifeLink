@@ -190,10 +190,12 @@ router.get('/users/:userId', async (req, res) => {
 
     try {
         const result = await pool.query(
-            `SELECT id, email, role, name, phone, address, city, state, country, blood_type, age,
-                    donation_type, donation_organ, medical_history, profile_picture, is_active, created_at
-             FROM users
-             WHERE id = $1 AND is_active = true`,
+            `SELECT u.id, u.email, u.role, u.name, u.phone, u.address, u.city, u.state, u.country, u.blood_type, u.age,
+                    u.donation_type, u.donation_organ, u.medical_history, u.profile_picture, u.is_active, u.created_at,
+                    COALESCE(r.status, 'pending') AS verification_status
+             FROM users u
+             LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+             WHERE u.id = $1 AND u.is_active = true`,
             [userId]
         );
 
@@ -297,9 +299,11 @@ router.get('/search', async (req, res) => {
     }
 
     try {
-        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at, profile_picture, phone, address, state, country, medical_history
-                     FROM users
-                     WHERE is_active = true`;
+        let query = `SELECT u.id, u.email, u.role, u.name, u.city, u.blood_type, u.age, u.donation_type, u.donation_organ AS organ_type, u.is_active, u.created_at, u.profile_picture, u.phone, u.address, u.state, u.country, u.medical_history,
+                            COALESCE(r.status, 'pending') AS verification_status
+                     FROM users u
+                     LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+                     WHERE u.is_active = true`;
         const params = [];
         let paramCount = 1;
 
@@ -530,6 +534,19 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             [req.userId, parsedLimit]
         );
 
+        // Broadcast notifications — created_by IS NULL means sent from admin panel
+        const broadcastAlertsResult = await pool.query(
+            `SELECT id, message, urgency, created_at
+             FROM alerts
+             WHERE alert_type = 'system_alert'
+               AND created_by IS NULL
+               AND (target_audience = 'all_users' OR target_audience IS NULL)
+               AND (expires_at IS NULL OR expires_at > NOW())
+             ORDER BY created_at DESC
+             LIMIT $1`,
+            [parsedLimit]
+        );
+
         const requestAlertsResult = await pool.query(
             `SELECT
                 a.id,
@@ -595,6 +612,22 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             reference_id: row.id
         }));
 
+        const broadcastNotifications = broadcastAlertsResult.rows.map((row) => {
+            const colonIdx = row.message.indexOf(': ');
+            const title = colonIdx !== -1 ? row.message.slice(0, colonIdx) : 'LifeLink Announcement';
+            const body = colonIdx !== -1 ? row.message.slice(colonIdx + 2) : row.message;
+            return {
+                id: `broadcast-${row.id}`,
+                type: 'broadcast',
+                title,
+                body,
+                created_at: row.created_at,
+                is_unread: true,
+                urgency: row.urgency,
+                reference_id: row.id
+            };
+        });
+
         const requestNotifications = myRequestsResult.rows.map((row) => {
             const requestLabel = row.request_type === 'blood'
                 ? `Blood request${row.blood_type ? ` (${row.blood_type})` : ''}`
@@ -657,6 +690,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
 
         const notifications = [
             ...messageNotifications,
+            ...broadcastNotifications,
             ...alertNotifications,
             ...requestNotifications,
             ...mergedCommunityRequestNotifications
@@ -671,7 +705,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             unread_count,
             counts: {
                 messages: messageNotifications.filter((item) => item.is_unread).length,
-                alerts: alertNotifications.length,
+                alerts: alertNotifications.length + broadcastNotifications.length,
                 requests: requestNotifications.length + mergedCommunityRequestNotifications.length
             }
         });
