@@ -11,9 +11,6 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 const router = express.Router();
 
 // Multer config for avatar uploads
@@ -26,27 +23,6 @@ const avatarStorage = multer.diskStorage({
         const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
         cb(null, `user-${req.userId}-${Date.now()}${ext}`);
     },
-});
-
-const uploadAvatar = multer({
-    storage: avatarStorage,
-    limits: { fileSize: 5 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-        if (/^image\/(jpeg|jpg|png|webp|gif)$/.test(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
-        }
-    },
-});
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
 });
 
 const uploadAvatar = multer({

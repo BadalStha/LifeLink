@@ -5,14 +5,6 @@ import { JWT_SECRET } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
 
 const router = express.Router();
-import bcrypt from 'bcrypt';
-import dotenv from 'dotenv';
-import pool from '../db.js';
-
-dotenv.config();
-
-const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
 
 // Admin Login endpoint
 router.post('/login', async (req, res) => {
