@@ -202,7 +202,7 @@ router.get('/users', async (req, res) => {
                 r.reviewed_at
             FROM users u
             LEFT JOIN admin_user_reviews r ON r.user_id = u.id
-            WHERE 1=1
+            WHERE u.role != 'admin'
         `;
         const params = [];
         let idx = 1;
