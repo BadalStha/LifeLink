@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, MapPin, Droplet, Heart, Filter, Loader2,
-  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation, Droplets, Eye
+  ArrowLeft, MessageCircle, Map, Phone, User, X, Navigation, Droplets
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';

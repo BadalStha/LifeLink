@@ -48,6 +48,34 @@ const ensureAdminUser = async () => {
     }
 };
 
+// PostgreSQL connection pool
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'lifelink_db',
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT || 5432,
+});
+
+const ensureAdminUser = async () => {
+    const adminEmail = 'lifelink.nepal@gmail.com';
+    const adminPassword = 'lifelink';
+
+    const existing = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND role = $2',
+        [adminEmail, 'admin']
+    );
+
+    if (existing.rows.length === 0) {
+        const hash = await bcrypt.hash(adminPassword, 10);
+        await pool.query(
+            'INSERT INTO users (email, password, role, name) VALUES ($1, $2, $3, $4)',
+            [adminEmail, hash, 'admin', 'LifeLink Admin']
+        );
+        console.log('Admin user created');
+    }
+};
+
 const ensureSchema = async () => {
     // Create all tables if they don't exist yet (safe on every boot)
     await pool.query(`

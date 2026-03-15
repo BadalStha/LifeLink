@@ -32,6 +32,10 @@ import { NEPAL_HOSPITALS } from '../data/constants';
 /*  Constants                                                         */
 /* ------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
+
 const TABS = [
   { key: 'users', label: 'Users & Donors', icon: Users },
   { key: 'requests', label: 'Requests', icon: FileText },
@@ -309,6 +313,8 @@ export default function Admin() {
   const [createHospitalForm, setCreateHospitalForm] = useState({ name: '', email: '', password: '', phone: '', city: '' });
   const [createHospitalError, setCreateHospitalError] = useState('');
   const [createHospitalSuccess, setCreateHospitalSuccess] = useState('');
+
+  /* ---------- data loading ---------- */
 
   /* ---------- data loading ---------- */
 
@@ -948,7 +954,7 @@ export default function Admin() {
         </div>
       </div>
     );
-  }, [activeTab, users, requests, hospitals, templates, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, requestStatusFilter, broadcastForm, announcementForm, hospitalEdit, showCreateHospital, createHospitalForm, createHospitalError, createHospitalSuccess]);
+  }, [activeTab, users, requests, hospitals, templates, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, requestStatusFilter, broadcastForm, announcementForm, hospitalEdit]);
 
   /* ---------- loading state ---------- */
 

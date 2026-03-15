@@ -2,10 +2,14 @@ import express from 'express';
 import pool from '../db.js';
 import { verifyToken } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -34,6 +38,55 @@ const uploadAvatar = multer({
             cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
         }
     },
+});
+
+// Initialize database pool
+const pool = new Pool({
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'lifelink_db',
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT || 5432,
+});
+
+const uploadAvatar = multer({
+    storage: avatarStorage,
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|jpg|png|webp|gif)$/.test(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
+        }
+    },
+});
+
+// POST /api/profile/avatar - Upload profile picture
+router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+    }
+
+    const profilePicturePath = `/uploads/avatars/${req.file.filename}`;
+
+    try {
+        // Delete old avatar file if it exists (best-effort cleanup)
+        const existing = await pool.query('SELECT profile_picture FROM users WHERE id = $1', [req.userId]);
+        const oldPath = existing.rows[0]?.profile_picture;
+        if (oldPath) {
+            fs.unlink(path.join(__dirname, '..', oldPath), () => {});
+        }
+
+        const result = await pool.query(
+            'UPDATE users SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING profile_picture',
+            [profilePicturePath, req.userId]
+        );
+
+        res.json({ message: 'Profile picture updated', profile_picture: result.rows[0].profile_picture });
+    } catch (err) {
+        console.error('Avatar upload error:', err);
+        res.status(500).json({ error: 'Failed to save profile picture' });
+    }
 });
 
 // POST /api/profile/avatar - Upload profile picture

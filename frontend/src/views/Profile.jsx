@@ -8,6 +8,8 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { authAPI, usersAPI, requestsAPI, API_BASE_URL } from '../services/api';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
 export default function Profile() {
   const navigate = useNavigate();
   const { logout } = useAuth();
