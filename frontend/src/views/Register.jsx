@@ -5,8 +5,7 @@ import {
   ShieldCheck, MapPin, Clock3, AlertCircle, ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { authAPI } from '../services/api';
 
 const provinceData = {
   'Province 1': ['Bhojpur', 'Dhankuta', 'Ilam', 'Jhapa', 'Khotang', 'Morang', 'Okhaldhunga', 'Panchthar', 'Sankhuwasabha', 'Solukhumbu', 'Sunsari', 'Taplejung', 'Terhathum', 'Udayapur'],
@@ -112,8 +111,6 @@ export default function Register() {
         blood_type: null,
         medical_history: null,
       });
-
-      if (!registerResponse.ok) throw new Error(await getErrorMessage(registerResponse));
 
       setSuccessMessage(`Welcome to LifeLink, ${formData.firstName}! Your account is ready.`);
       setTimeout(() => navigate('/login'), 3000);

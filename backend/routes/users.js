@@ -65,34 +65,6 @@ router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async
     }
 });
 
-// POST /api/profile/avatar - Upload profile picture
-router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ error: 'No image file provided' });
-    }
-
-    const profilePicturePath = `/uploads/avatars/${req.file.filename}`;
-
-    try {
-        // Delete old avatar file if it exists (best-effort cleanup)
-        const existing = await pool.query('SELECT profile_picture FROM users WHERE id = $1', [req.userId]);
-        const oldPath = existing.rows[0]?.profile_picture;
-        if (oldPath) {
-            fs.unlink(path.join(__dirname, '..', oldPath), () => {});
-        }
-
-        const result = await pool.query(
-            'UPDATE users SET profile_picture = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING profile_picture',
-            [profilePicturePath, req.userId]
-        );
-
-        res.json({ message: 'Profile picture updated', profile_picture: result.rows[0].profile_picture });
-    } catch (err) {
-        console.error('Avatar upload error:', err);
-        res.status(500).json({ error: 'Failed to save profile picture' });
-    }
-});
-
 // PUT /api/profile - Update current user's profile
 router.put('/profile', verifyToken, async (req, res) => {
     const { name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ } = req.body;
