@@ -427,12 +427,14 @@ export default function Home() {
             </>
           )}
 
-          <button
-            onClick={() => setShowEmergencyModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-semibold shadow-sm"
-          >
-            <HandHeart size={15}/> {t.requestHelp}
-          </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setShowEmergencyModal(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all font-semibold shadow-sm"
+            >
+              <HandHeart size={15}/> {t.requestHelp}
+            </button>
+          )}
         </div>
       </nav>
 
@@ -730,7 +732,7 @@ export default function Home() {
                 <p className="text-red-200 font-medium max-w-lg">{t.emergencyCaseDesc}</p>
               </div>
               <button
-                onClick={() => setShowEmergencyModal(true)}
+                onClick={() => isAuthenticated ? navigate('/request-help') : setShowEmergencyModal(true)}
                 className="inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl bg-white text-red-700 font-black hover:bg-red-50 transition-all shadow-lg shrink-0"
               >
                 <PhoneCall size={18}/> {t.openEmergency}
@@ -803,13 +805,13 @@ export default function Home() {
             </div>
             <h3 className="text-2xl font-black text-slate-900 mb-2">{t.requestHelpModal}</h3>
             <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              {isAuthenticated ? t.submitRequestDesc : t.requestHelpDesc}
+              {t.requestHelpDesc}
             </p>
             <button
-              onClick={() => { setShowEmergencyModal(false); navigate('/request-help'); }}
+              onClick={() => { setShowEmergencyModal(false); navigate('/register'); }}
               className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
             >
-              <HandHeart size={18}/> {t.submitRequest}
+              <HandHeart size={18}/> {t.registerAndHelp}
             </button>
           </div>
         </div>

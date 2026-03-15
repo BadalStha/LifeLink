@@ -58,6 +58,25 @@ const pool = new Pool({
     port: process.env.DB_PORT || 5432,
 });
 
+const ensureAdminUser = async () => {
+    const adminEmail = 'lifelink.nepal@gmail.com';
+    const adminPassword = 'lifelink';
+
+    const existing = await pool.query(
+        'SELECT id FROM users WHERE email = $1 AND role = $2',
+        [adminEmail, 'admin']
+    );
+
+    if (existing.rows.length === 0) {
+        const hash = await bcrypt.hash(adminPassword, 10);
+        await pool.query(
+            'INSERT INTO users (email, password, role, name) VALUES ($1, $2, $3, $4)',
+            [adminEmail, hash, 'admin', 'LifeLink Admin']
+        );
+        console.log('Admin user created');
+    }
+};
+
 const ensureSchema = async () => {
     // Create all tables if they don't exist yet (safe on every boot)
     await pool.query(`
@@ -351,6 +370,10 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ error: 'Invalid email or password' });
         }
 
+        if (!user.is_active) {
+            return res.status(403).json({ error: 'Your account has been deactivated. Please contact the administrator.' });
+        }
+
         // Generate JWT token
         const token = jwt.sign(
             { userId: user.id, role: user.role, email: user.email },
@@ -586,6 +609,7 @@ const startServer = async () => {
     try {
         await ensureSchema();
         await ensurePasswordResetTable();
+        await ensureAdminUser();
         app.listen(PORT, () => {
             console.log(`Server started on http://localhost:${PORT}`);
         });
