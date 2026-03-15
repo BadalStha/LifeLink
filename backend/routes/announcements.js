@@ -1,31 +1,8 @@
 import express from 'express';
-import { Pool } from 'pg';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
+import { verifyToken } from '../middleware/auth.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-    if (!token) return res.status(403).json({ error: 'No token provided' });
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) return res.status(401).json({ error: 'Invalid or expired token' });
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
 
 // GET /api/announcements - Public, get published announcements
 router.get('/announcements', async (req, res) => {

@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import pool from './db.js';
+import { verifyToken, JWT_SECRET } from './middleware/auth.js';
+import errorHandler from './middleware/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,44 +20,14 @@ import adminAuthRouter from './routes/adminAuth.js';
 import adminPanelRouter from './routes/adminPanel.js';
 import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
-
-// Loading .env variables
-dotenv.config();
+import hospitalsRouter from './routes/hospitals.js';
 
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// JWT Verification Middleware
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-
-    if (!token) {
-        return res.status(403).json({ error: 'No token provided' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
-
-// PostgreSQL connection pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
 
 const ensureAdminUser = async () => {
     const adminEmail = 'lifelink.nepal@gmail.com';
@@ -378,7 +349,7 @@ app.post('/api/login', async (req, res) => {
         const token = jwt.sign(
             { userId: user.id, role: user.role, email: user.email },
             JWT_SECRET,
-            { expiresIn: '24h' }
+            { expiresIn: process.env.JWT_EXPIRATION || '24h' }
         );
 
         res.json({
@@ -602,6 +573,10 @@ app.use('/api/admin', adminAuthRouter);
 app.use('/api/admin', adminPanelRouter);
 app.use('/api', announcementsRouter);
 app.use('/api', chatRouter);
+app.use('/api', hospitalsRouter);
+
+// Centralized error handler (must be after all routes)
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 

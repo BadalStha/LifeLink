@@ -5,20 +5,7 @@ import {
   User, CheckCheck, Clock, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-const authFetch = (url, options = {}) => {
-  const token = localStorage.getItem('authToken');
-  return fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-      ...options.headers,
-    },
-  });
-};
+import { messagesAPI, usersAPI, API_BASE_URL } from '../services/api';
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
@@ -36,6 +23,31 @@ function getInitials(name) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
+function getProfilePicUrl(path) {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  return `${API_BASE_URL}${path}`;
+}
+
+function Avatar({ name, picPath, size = 11, textSize = 'text-sm' }) {
+  const picUrl = getProfilePicUrl(picPath);
+  const sizeClass = `w-${size} h-${size}`;
+  if (picUrl) {
+    return (
+      <img
+        src={picUrl}
+        alt={name}
+        className={`${sizeClass} rounded-full object-cover shrink-0 border-2 border-white`}
+      />
+    );
+  }
+  return (
+    <div className={`${sizeClass} bg-red-600 rounded-full flex items-center justify-center text-white font-black ${textSize} shrink-0`}>
+      {getInitials(name)}
+    </div>
+  );
+}
+
 function ConversationItem({ conv, isActive, onClick }) {
   return (
     <button
@@ -44,9 +56,7 @@ function ConversationItem({ conv, isActive, onClick }) {
         isActive ? 'bg-red-50 border border-red-200' : 'hover:bg-slate-50'
       }`}
     >
-      <div className="w-11 h-11 bg-red-600 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0">
-        {getInitials(conv.partner_name)}
-      </div>
+      <Avatar name={conv.partner_name} picPath={conv.partner_profile_picture} size={11} textSize="text-sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between">
           <p className={`font-bold text-sm truncate ${isActive ? 'text-red-700' : 'text-slate-800'}`}>
@@ -72,9 +82,7 @@ function MessageBubble({ msg, myId }) {
   return (
     <div className={`flex items-end gap-2 ${isMine ? 'flex-row-reverse' : ''}`}>
       {!isMine && (
-        <div className="w-8 h-8 bg-slate-300 rounded-full flex items-center justify-center text-slate-600 font-bold text-xs shrink-0">
-          {getInitials(msg.sender_name)}
-        </div>
+        <Avatar name={msg.sender_name} picPath={msg.sender_profile_picture} size={8} textSize="text-xs" />
       )}
       <div
         className={`max-w-[70%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
@@ -100,6 +108,7 @@ export default function Chat() {
   const [conversations, setConversations] = useState([]);
   const [activeConvId, setActiveConvId] = useState(searchParams.get('to') || null);
   const [activeConvName, setActiveConvName] = useState('');
+  const [activeConvPic, setActiveConvPic] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoadingConvs, setIsLoadingConvs] = useState(true);
@@ -143,20 +152,18 @@ export default function Chat() {
   const loadConversations = async () => {
     setIsLoadingConvs(true);
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/messages/conversations`);
-      const data = await res.json();
-      if (res.ok) {
-        setConversations(data.conversations || []);
+      const data = await messagesAPI.getConversations();
+      setConversations(data.conversations || []);
 
-        // If a target user was passed via ?to=id, set their name from conversations
-        const toId = searchParams.get('to');
-        if (toId) {
-          const found = data.conversations?.find(c => String(c.partner_id) === toId);
-          if (found?.partner_name) {
-            setActiveConvName(found.partner_name);
-          } else {
-            resolveConversationName(toId);
-          }
+      // If a target user was passed via ?to=id, set their name from conversations
+      const toId = searchParams.get('to');
+      if (toId) {
+        const found = data.conversations?.find(c => String(c.partner_id) === toId);
+        if (found?.partner_name) {
+          setActiveConvName(found.partner_name);
+          setActiveConvPic(found.partner_profile_picture || null);
+        } else {
+          resolveConversationName(toId);
         }
       }
     } catch (err) {
@@ -169,10 +176,10 @@ export default function Chat() {
   const resolveConversationName = async (userId) => {
     if (!userId) return;
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/users/${userId}`);
-      const data = await res.json();
-      if (res.ok && data?.user?.name) {
+      const data = await usersAPI.getById(userId);
+      if (data?.user?.name) {
         setActiveConvName(data.user.name);
+        setActiveConvPic(data.user.profile_picture || null);
       }
     } catch (err) {
       console.error('Failed to resolve conversation name:', err);
@@ -182,9 +189,8 @@ export default function Chat() {
   const loadMessages = async (userId, showLoader = true) => {
     if (showLoader) setIsLoadingMsgs(true);
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/messages/${userId}`);
-      const data = await res.json();
-      if (res.ok) setMessages(data.messages || []);
+      const data = await messagesAPI.getMessages(userId);
+      setMessages(data.messages || []);
     } catch (err) {
       console.error('Failed to load messages:', err);
     } finally {
@@ -195,6 +201,7 @@ export default function Chat() {
   const openConversation = (conv) => {
     setActiveConvId(String(conv.partner_id));
     setActiveConvName(conv.partner_name || '');
+    setActiveConvPic(conv.partner_profile_picture || null);
     setMessages([]);
     setError('');
   };
@@ -208,20 +215,11 @@ export default function Chat() {
     setIsSending(true);
 
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/messages`, {
-        method: 'POST',
-        body: JSON.stringify({ recipient_id: Number(activeConvId), content }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMessages(prev => [...prev, data.message]);
-        loadConversations(); // refresh conversation list
-      } else {
-        setError(data.error || 'Failed to send');
-        setNewMessage(content); // restore message on failure
-      }
+      const data = await messagesAPI.sendMessage(Number(activeConvId), content);
+      setMessages(prev => [...prev, data.message]);
+      loadConversations(); // refresh conversation list
     } catch (err) {
-      setError('Message failed to send');
+      setError(err.message || 'Message failed to send');
       setNewMessage(content);
     } finally {
       setIsSending(false);
@@ -231,8 +229,7 @@ export default function Chat() {
   const searchUsers = async (query) => {
     if (!query.trim()) { setSearchResults([]); return; }
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/search?search=${encodeURIComponent(query)}&limit=5`);
-      const data = await res.json();
+      const data = await usersAPI.search({ search: query, limit: 5 });
       setSearchResults(data.users || []);
     } catch {
       setSearchResults([]);
@@ -242,15 +239,16 @@ export default function Chat() {
   const startConversation = (u) => {
     setActiveConvId(String(u.id));
     setActiveConvName(u.name || 'User');
+    setActiveConvPic(u.profile_picture || null);
     setSearchUser('');
     setSearchResults([]);
     setMessages([]);
 
-    // Add to conversations list if not already there
     if (!conversations.find(c => String(c.partner_id) === String(u.id))) {
       setConversations(prev => [{
         partner_id: u.id,
         partner_name: u.name,
+        partner_profile_picture: u.profile_picture || null,
         last_message: '',
         last_message_at: new Date().toISOString(),
         unread_count: 0,
@@ -292,9 +290,7 @@ export default function Chat() {
                     onClick={() => startConversation(u)}
                     className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-all text-left"
                   >
-                    <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0">
-                      {getInitials(u.name)}
-                    </div>
+                    <Avatar name={u.name} picPath={u.profile_picture} size={8} textSize="text-xs" />
                     <div>
                       <p className="font-bold text-sm text-slate-800">{u.name}</p>
                       {u.blood_type && <p className="text-xs text-red-600">{u.blood_type}</p>}
@@ -341,9 +337,7 @@ export default function Chat() {
               >
                 <ArrowLeft size={20} />
               </button>
-              <div className="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center text-white font-black text-sm">
-                {getInitials(activeConvName)}
-              </div>
+              <Avatar name={activeConvName} picPath={activeConvPic} size={10} textSize="text-sm" />
               <div>
                 <p className="font-black text-slate-800">{activeConvName || 'User'}</p>
                 <p className="text-xs text-slate-500">Donor — LifeLink Member</p>

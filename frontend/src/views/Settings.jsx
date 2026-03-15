@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Loader2, LogOut, Save, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
-
-const BLOOD_TYPES = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
+import { BLOOD_TYPES } from '../data/constants';
 
 export default function Settings() {
   const navigate = useNavigate();

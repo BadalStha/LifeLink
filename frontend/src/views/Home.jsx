@@ -23,9 +23,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { dashboardAPI, notificationsAPI } from '../services/api';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { dashboardAPI, notificationsAPI, announcementsAPI } from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -63,8 +61,7 @@ export default function Home() {
 
     const fetchAnnouncements = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/announcements?limit=4`);
-        const data = await res.json();
+        const data = await announcementsAPI.getPublished(4);
         setAnnouncements(data.announcements || []);
       } catch {
         setAnnouncements([]);

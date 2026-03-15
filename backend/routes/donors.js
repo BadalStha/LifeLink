@@ -1,19 +1,7 @@
 import express from 'express';
-import { Pool } from 'pg';
-import dotenv from 'dotenv';
-
-dotenv.config();
+import pool from '../db.js';
 
 const router = express.Router();
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
 
 // GET /api/donors/locations - Get all active donors with location data
 router.get('/locations', async (req, res) => {
@@ -21,9 +9,9 @@ router.get('/locations', async (req, res) => {
 
     try {
         let query = `
-            SELECT 
+            SELECT
                 id,
-                name, 
+                name,
                 blood_type,
                 city,
                 state,
@@ -32,12 +20,12 @@ router.get('/locations', async (req, res) => {
                 age,
                 donation_type,
                 donation_organ
-            FROM users 
-            WHERE is_active = true 
+            FROM users
+            WHERE is_active = true
             AND donation_type IS NOT NULL
             AND city IS NOT NULL
         `;
-        
+
         const params = [];
         let paramCount = 1;
 

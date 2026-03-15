@@ -10,12 +10,15 @@ import Profile from './views/Profile';
 import Settings from './views/Settings';
 import Admin from './views/Admin';
 import AdminLogin from './views/AdminLogin';
+import HospitalLogin from './views/HospitalLogin';
+import Hospital from './views/Hospital';
 import Register from './views/Register';
 import RequestHelp from './views/RequestHelp';
 import Privacy from './views/Privacy';
 import NotFound from './views/NotFound';
 import About from './views/About';
 import FindDonors from './views/FindDonors';
+import DonorProfile from './views/DonorProfile';
 import Chat from './views/Chat';
 import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
@@ -40,6 +43,12 @@ export default function App() {
           <ProtectedRoute>
             <FindDonors />
           </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/donor/:id" 
+        element={
+            <DonorProfile />
         } 
       />
       <Route 
@@ -75,14 +84,16 @@ export default function App() {
         } 
       />
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route 
-        path="/admin" 
+      <Route
+        path="/admin"
         element={
           <AdminProtectedRoute>
             <Admin />
           </AdminProtectedRoute>
-        } 
+        }
       />
+      <Route path="/hospital/login" element={<HospitalLogin />} />
+      <Route path="/hospital" element={<Hospital />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

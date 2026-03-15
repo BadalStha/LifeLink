@@ -1,13 +1,11 @@
 import express from 'express';
-import { Pool } from 'pg';
+import pool from '../db.js';
+import { verifyToken } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-
-dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,35 +35,6 @@ const uploadAvatar = multer({
         }
     },
 });
-
-// Initialize database pool
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'lifelink_db',
-    password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432,
-});
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1];
-
-    if (!token) {
-        return res.status(403).json({ error: 'No token provided' });
-    }
-
-    const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key_change_this';
-    
-    jwt.verify(token, JWT_SECRET, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Invalid or expired token' });
-        }
-        req.userId = decoded.userId;
-        req.role = decoded.role;
-        next();
-    });
-};
 
 // POST /api/profile/avatar - Upload profile picture
 router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async (req, res) => {
@@ -122,15 +91,15 @@ router.put('/profile', verifyToken, async (req, res) => {
 
     try {
         const result = await pool.query(
-            `UPDATE users 
-             SET name = COALESCE($2, name), 
-                 phone = COALESCE($3, phone), 
-                 address = COALESCE($4, address), 
-                 city = COALESCE($5, city), 
-                 state = COALESCE($6, state), 
-                 country = COALESCE($7, country), 
-                 blood_type = COALESCE($8, blood_type), 
-                 age = COALESCE($9, age), 
+            `UPDATE users
+             SET name = COALESCE($2, name),
+                 phone = COALESCE($3, phone),
+                 address = COALESCE($4, address),
+                 city = COALESCE($5, city),
+                 state = COALESCE($6, state),
+                 country = COALESCE($7, country),
+                 blood_type = COALESCE($8, blood_type),
+                 age = COALESCE($9, age),
                  medical_history = COALESCE($10, medical_history),
                  donation_type = COALESCE($11, donation_type),
                  donation_organ = CASE
@@ -139,7 +108,7 @@ router.put('/profile', verifyToken, async (req, res) => {
                     ELSE donation_organ
                  END,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1 
+             WHERE id = $1
              RETURNING id, email, role, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ, profile_picture`,
             [req.userId, name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ]
         );
@@ -148,9 +117,9 @@ router.put('/profile', verifyToken, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        res.json({ 
+        res.json({
             message: 'Profile updated successfully',
-            user: result.rows[0] 
+            user: result.rows[0]
         });
     } catch (err) {
         console.error('Update profile error:', err);
@@ -162,15 +131,15 @@ router.put('/profile', verifyToken, async (req, res) => {
 router.get('/users/:userId', async (req, res) => {
     const { userId } = req.params;
 
-    // Validate user ID is a number
     if (isNaN(userId)) {
         return res.status(400).json({ error: 'Invalid user ID' });
     }
 
     try {
         const result = await pool.query(
-            `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ, is_active, created_at 
-             FROM users 
+            `SELECT id, email, role, name, phone, address, city, state, country, blood_type, age,
+                    donation_type, donation_organ, medical_history, profile_picture, is_active, created_at
+             FROM users
              WHERE id = $1 AND is_active = true`,
             [userId]
         );
@@ -255,16 +224,38 @@ router.get('/users/:userId/donation-history', async (req, res) => {
     }
 });
 
-// GET /api/users/search - Search for users by blood type, role, city, organ type
+// GET /api/search - Search for users by blood type, role, city, organ type
 router.get('/search', async (req, res) => {
     const { blood_type, role, city, organ_type, ready_to_donate, limit = 20, offset = 0, search } = req.query;
 
+    // Extract userId from token if provided (to exclude current user from results)
+    let currentUserId = null;
+    const authHeader = req.headers.authorization;
+    if (authHeader) {
+        try {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_change_this');
+                currentUserId = decoded.userId;
+            }
+        } catch (err) {
+            // Token invalid or expired, that's okay - just proceed without filtering
+        }
+    }
+
     try {
-        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at 
-                     FROM users 
+        let query = `SELECT id, email, role, name, city, blood_type, age, donation_type, donation_organ AS organ_type, is_active, created_at, profile_picture, phone, address, state, country, medical_history
+                     FROM users
                      WHERE is_active = true`;
         const params = [];
         let paramCount = 1;
+
+        // Exclude current user from search results
+        if (currentUserId) {
+            query += ` AND id != $${paramCount}`;
+            params.push(currentUserId);
+            paramCount++;
+        }
 
         if (ready_to_donate === 'true') {
             query += ` AND donation_type IS NOT NULL`;
@@ -276,7 +267,6 @@ router.get('/search', async (req, res) => {
             paramCount++;
         }
 
-        // Add filters
         if (blood_type) {
             query += ` AND donation_type = 'blood' AND blood_type = $${paramCount}`;
             params.push(blood_type);
@@ -301,13 +291,12 @@ router.get('/search', async (req, res) => {
             paramCount++;
         }
 
-        // Add limit and offset
         query += ` ORDER BY created_at DESC LIMIT $${paramCount} OFFSET $${paramCount + 1}`;
         params.push(parseInt(limit), parseInt(offset));
 
         const result = await pool.query(query, params);
 
-        res.json({ 
+        res.json({
             users: result.rows,
             count: result.rows.length,
             limit: parseInt(limit),
@@ -322,27 +311,23 @@ router.get('/search', async (req, res) => {
 // GET /api/user/stats - Get current user's statistics
 router.get('/user/stats', verifyToken, async (req, res) => {
     try {
-        // Count blood donations by this user
         const bloodDonations = await pool.query(
             `SELECT COUNT(*) as count FROM blood_donations WHERE donor_id = $1`,
             [req.userId]
         );
 
-        // Count organ donations by this user
         const organDonations = await pool.query(
             `SELECT COUNT(*) as count FROM organ_donations WHERE donor_id = $1`,
             [req.userId]
         );
 
-        // Count donation requests created by this user
         const requestsCreated = await pool.query(
             `SELECT COUNT(*) as count FROM donation_requests WHERE requester_id = $1`,
             [req.userId]
         );
 
         const totalDonations = parseInt(bloodDonations.rows[0].count) + parseInt(organDonations.rows[0].count);
-        
-        // Determine status based on activity
+
         let status = 'New Member';
         if (totalDonations >= 10) {
             status = 'Legendary Hero';
@@ -374,9 +359,8 @@ router.get('/user/donation-history', verifyToken, async (req, res) => {
     try {
         const { limit = 10 } = req.query;
 
-        // Get blood donations
         const bloodDonations = await pool.query(
-            `SELECT 
+            `SELECT
                 bd.id,
                 bd.donation_date,
                 bd.location as hospital_name,
@@ -390,9 +374,8 @@ router.get('/user/donation-history', verifyToken, async (req, res) => {
             [req.userId, parseInt(limit)]
         );
 
-        // Get organ donations
         const organDonations = await pool.query(
-            `SELECT 
+            `SELECT
                 od.id,
                 od.donation_date,
                 NULL::text as hospital_name,
@@ -406,7 +389,6 @@ router.get('/user/donation-history', verifyToken, async (req, res) => {
             [req.userId, parseInt(limit)]
         );
 
-        // Combine and sort by donation_date
         const allDonations = [
             ...bloodDonations.rows,
             ...organDonations.rows
@@ -495,49 +477,49 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             [req.userId, parsedLimit]
         );
 
-                const requestAlertsResult = await pool.query(
-                        `SELECT
-                                a.id,
-                                a.message,
-                                a.urgency,
-                                a.created_at,
-                                a.related_request_id,
-                                dr.request_type,
-                                dr.blood_type,
-                                dr.organ_type,
-                                dr.status,
-                                dr.location,
-                                u.name AS requester_name
-                         FROM alerts a
-                         JOIN donation_requests dr ON dr.id = a.related_request_id
-                         JOIN users u ON u.id = dr.requester_id
-                         WHERE a.related_request_id IS NOT NULL
-                             AND dr.requester_id != $1
-                             AND dr.status = 'open'
-                         ORDER BY a.created_at DESC
-                         LIMIT $2`,
-                        [req.userId, parsedLimit]
-                );
+        const requestAlertsResult = await pool.query(
+            `SELECT
+                a.id,
+                a.message,
+                a.urgency,
+                a.created_at,
+                a.related_request_id,
+                dr.request_type,
+                dr.blood_type,
+                dr.organ_type,
+                dr.status,
+                dr.location,
+                u.name AS requester_name
+             FROM alerts a
+             JOIN donation_requests dr ON dr.id = a.related_request_id
+             JOIN users u ON u.id = dr.requester_id
+             WHERE a.related_request_id IS NOT NULL
+                 AND dr.requester_id != $1
+                 AND dr.status = 'open'
+             ORDER BY a.created_at DESC
+             LIMIT $2`,
+            [req.userId, parsedLimit]
+        );
 
-                const otherOpenRequestsResult = await pool.query(
-                        `SELECT
-                                dr.id,
-                                dr.request_type,
-                                dr.blood_type,
-                                dr.organ_type,
-                                dr.urgency,
-                                dr.status,
-                                dr.location,
-                                dr.created_at,
-                                u.name AS requester_name
-                         FROM donation_requests dr
-                         JOIN users u ON u.id = dr.requester_id
-                         WHERE dr.requester_id != $1
-                             AND dr.status = 'open'
-                         ORDER BY dr.created_at DESC
-                         LIMIT $2`,
-                        [req.userId, parsedLimit]
-                );
+        const otherOpenRequestsResult = await pool.query(
+            `SELECT
+                dr.id,
+                dr.request_type,
+                dr.blood_type,
+                dr.organ_type,
+                dr.urgency,
+                dr.status,
+                dr.location,
+                dr.created_at,
+                u.name AS requester_name
+             FROM donation_requests dr
+             JOIN users u ON u.id = dr.requester_id
+             WHERE dr.requester_id != $1
+                 AND dr.status = 'open'
+             ORDER BY dr.created_at DESC
+             LIMIT $2`,
+            [req.userId, parsedLimit]
+        );
 
         const messageNotifications = unreadMessagesResult.rows.map((row) => ({
             id: `msg-${row.id}`,

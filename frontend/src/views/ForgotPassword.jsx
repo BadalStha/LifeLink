@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, User, ShieldCheck, Loader2 } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+import { authAPI } from '../services/api';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -27,15 +26,6 @@ export default function ForgotPassword() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  const getErrorMessage = async (response) => {
-    try {
-      const errorData = await response.json();
-      return errorData.error || 'Request failed';
-    } catch {
-      return 'Request failed';
-    }
-  };
-
   const requestCode = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -43,17 +33,7 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/forgot-password/request-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
-
-      const data = await response.json();
+      const data = await authAPI.requestResetCode(name, email);
       setStep('verify');
       setSuccessMessage(data.message || 'Verification code sent to your email.');
       setResendCooldown(30);
@@ -74,17 +54,7 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/forgot-password/request-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
-
-      const data = await response.json();
+      const data = await authAPI.requestResetCode(name, email);
       setSuccessMessage(data.message || 'A new verification code has been sent.');
       setResendCooldown(30);
     } catch (error) {
@@ -101,17 +71,7 @@ export default function ForgotPassword() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/forgot-password/verify-code`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code }),
-      });
-
-      if (!response.ok) {
-        throw new Error(await getErrorMessage(response));
-      }
-
-      const data = await response.json();
+      const data = await authAPI.verifyResetCode(email, code);
       navigate('/reset-password', { state: { resetToken: data.reset_token, email } });
     } catch (error) {
       setErrorMessage(error.message || 'Unable to verify code.');
