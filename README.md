@@ -1,266 +1,184 @@
-# LifeLink - Blood & Organ Donation Platform
+# LifeLink
 
-**A full-stack web application connecting blood and organ donors with people in urgent medical need across Nepal.**
+LifeLink is a full-stack blood and organ donation platform for connecting donors, patients, hospitals, and administrators.
 
-## 🚀 Project Overview
+## Overview
 
-LifeLink is a comprehensive donation management system built to:
-- Connect verified donors with patients in emergency situations
-- Provide real-time donor matching based on location and blood type
-- Enable rapid response for critical medical needs
-- Support both blood and organ donation coordination
-- Offer admin dashboard for monitoring and management
+The project includes:
+- User registration and JWT login
+- Donation preferences (blood or organ)
+- Emergency help requests with urgency levels
+- Donor search and donor location map
+- Alerts, announcements, and chat
+- Admin authentication and admin dashboard tools
 
-## �� Tech Stack
+## Tech Stack
 
-### Backend
-- **Node.js** with **Express 5.2.1**
-- **PostgreSQL** database with **pg 8.18.0**
-- **JWT** authentication with **bcrypt 6.0.0** password hashing
-- **dotenv** for environment configuration
-- **nodemon** for development
+Backend:
+- Node.js
+- Express
+- PostgreSQL (pg)
+- JWT auth + bcrypt
+- Nodemailer (password reset email)
 
-### Frontend
-- **React 19.2.0** with **React Router 7.13.0**
-- **Vite 8.0.0-beta.13** as build tool
-- **TailwindCSS 4.1.18** for styling
-- **Lucide React** icons
-- **Leaflet** for interactive donor maps
+Frontend:
+- React
+- React Router
+- Vite
+- Tailwind CSS
+- React Leaflet
 
-## 📋 Features
+## Repository Structure
 
-### User Features
-- ✅ User registration with role-based access (donor, patient, admin, hospital)
-- ✅ Secure login with JWT tokens
-- ✅ Complete user profiles with medical information
-- ✅ Blood type and location-based donor search
-- ✅ Emergency request submission with urgency levels
-- ✅ Interactive map showing nearby donors
-- ✅ Donation history tracking
-- ✅ Multi-language support (English/Nepali)
-
-### Admin Features
-- ✅ Dashboard with real-time statistics
-- ✅ User management and search
-- ✅ Request monitoring and status updates
-- ✅ Alert creation and broadcasting
-- ✅ Blood type distribution analytics
-
-## 🏗️ Database Schema
-
-The system uses 8 main tables:
-- **users** - User accounts with authentication
-- **blood_donations** - Blood donation records
-- **organ_donations** - Organ donation records  
-- **donation_requests** - Emergency requests
-- **alerts** - System notifications
-- **announcements** - Admin announcements
-- **messages** - User communication
-- **hospitals** - Medical facility records
-
-## 🛠️ Setup Instructions
-
-### Prerequisites
-- Node.js (v18 or higher)
-- PostgreSQL (v13 or higher)
-- npm or yarn
-
-### Backend Setup
-
-1. Navigate to backend directory:
-```bash
-cd backend
+```text
+LifeLink/
+	backend/
+		index.js
+		db.js
+		schema.sql
+		routes/
+		middleware/
+		uploads/
+	frontend/
+		src/
+		public/
+	QUICKSTART.md
+	README.md
 ```
 
-2. Install dependencies:
+## Prerequisites
+
+- Node.js 18+
+- npm 9+
+- PostgreSQL 13+
+
+## Local Development Setup
+
+### 1. Create the database
+
 ```bash
-npm install
+psql -U postgres -c "CREATE DATABASE lifelink_db;"
 ```
 
-3. Create `.env` file with:
+Optional clean schema import (drops existing LifeLink tables first):
+
+```bash
+psql -U postgres -d lifelink_db -f backend/schema.sql
+```
+
+Notes:
+- If you skip schema import, the backend still auto-creates required core tables on startup.
+- The schema file is useful for a clean, repeatable setup.
+
+### 2. Configure backend environment
+
+Create backend/.env:
+
 ```env
 DB_USER=postgres
 DB_HOST=localhost
 DB_NAME=lifelink_db
-DB_PASSWORD=your_password
+DB_PASSWORD=your_postgres_password
 DB_PORT=5432
-JWT_SECRET=your_jwt_secret_key_change_this
+
+JWT_SECRET=replace_with_a_strong_secret
+JWT_EXPIRATION=24h
 PORT=5000
+
+# Optional SMTP settings (required for forgot-password email)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_SECURE=false
+SMTP_FROM=
 ```
 
-4. Initialize database:
-```bash
-psql -U postgres
-CREATE DATABASE lifelink_db;
-\c lifelink_db
-\i schema.sql
-\q
-```
+### 3. Start backend
 
-5. Start backend server:
 ```bash
+cd backend
+npm install
 npm start
 ```
 
-Backend will run on http://localhost:5000
+Backend runs at http://localhost:5000
 
-### Frontend Setup
+### 4. Configure and start frontend
 
-1. Navigate to frontend directory:
-```bash
-cd frontend
-```
+Create frontend/.env (optional):
 
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Create `.env` file (optional):
 ```env
 VITE_API_BASE_URL=http://localhost:5000
 ```
 
-4. Start development server:
+Run frontend:
+
 ```bash
+cd frontend
+npm install
 npm run dev
 ```
 
-Frontend will run on http://localhost:5173
+Frontend runs at http://localhost:5173
 
-## 📡 API Endpoints
+## Default Admin Account
 
-### Authentication
-- `POST /api/register` - User registration
-- `POST /api/login` - User login
-- `GET /api/profile` - Get user profile (protected)
-- `PUT /api/profile` - Update profile (protected)
+On backend startup, an admin user is auto-created if missing.
 
-### Requests
-- `POST /api/requests` - Create donation request (protected)
-- `GET /api/requests` - Get all requests with filters
-- `GET /api/requests/:id` - Get specific request
-- `PUT /api/requests/:id` - Update request (protected)
-- `DELETE /api/requests/:id` - Delete request (protected)
-- `GET /api/user/my-requests` - Get user's requests (protected)
+- Email: lifelink.nepal@gmail.com
+- Password: lifelink
 
-### Dashboard
-- `GET /api/dashboard/stats` - Get platform statistics
-- `GET /api/dashboard/users` - Get users with search/pagination
+Admin login page: http://localhost:5173/admin/login
 
-### Donors
-- `GET /api/donors/locations` - Get donors with coordinates
+## Main API Areas
 
-### Alerts
-- `POST /api/alerts` - Create alert (admin only)
-- `GET /api/alerts` - Get all alerts
-- `DELETE /api/alerts/:id` - Delete alert (admin only)
+Auth and profile:
+- POST /api/register
+- POST /api/login
+- GET /api/profile
+- PUT /api/profile
+- POST /api/profile/avatar
 
-### User Stats
-- `GET /api/user/stats` - Get user donation statistics (protected)
-- `GET /api/user/donation-history` - Get donation history (protected)
+Password reset:
+- POST /api/forgot-password/request-code
+- POST /api/forgot-password/verify-code
+- POST /api/forgot-password/reset
 
-## 🔐 Security Features
+Requests and donors:
+- POST /api/requests
+- GET /api/requests
+- GET /api/requests/:id
+- PUT /api/requests/:id
+- DELETE /api/requests/:id
+- GET /api/donors/locations
 
-- Password hashing with bcrypt (10 salt rounds)
-- JWT token authentication (24h expiration)
-- Role-based access control
-- Input validation and sanitization
-- Protected routes with authentication middleware
-- Email normalization
+Admin:
+- POST /api/admin/login
+- GET /api/admin/overview
+- GET /api/admin/users
 
-## 🧪 Testing
+## Useful Commands
 
-Run frontend build:
+Frontend production build:
+
 ```bash
 cd frontend && npm run build
 ```
 
-Check backend syntax:
+Frontend lint:
+
+```bash
+cd frontend && npm run lint
+```
+
+Backend syntax check:
+
 ```bash
 cd backend && node --check index.js
 ```
 
-Test API endpoints:
-```bash
-curl http://localhost:5000/api/dashboard/stats
-```
+## Notes
 
-## 📦 Production Build
-
-Frontend:
-```bash
-cd frontend
-npm run build
-# Build files will be in dist/
-```
-
-Backend:
-```bash
-cd backend
-# Set NODE_ENV=production in .env
-npm start
-```
-
-## 🌍 Nepal-Specific Features
-
-- Province and district selection based on Nepal's administrative divisions
-- Blood group matching for Nepal's population
-- Nepali language support
-- Major Nepal city coordinates for donor mapping
-- 24/7 emergency coordination system
-
-## 👥 User Roles
-
-1. **User/Donor** - Register as donor, view requests, update profile
-2. **Patient** - Submit requests, search donors, track status
-3. **Admin** - Manage users, view analytics, create alerts
-4. **Hospital** - Coordinate donations, manage hospital-specific requests
-
-## 📱 Pages
-
-- `/` - Homepage with statistics and information
-- `/login` - User authentication
-- `/register` - New user registration
-- `/profile` - User profile and donation history
-- `/settings` - Account settings
-- `/request-help` - Emergency request form
-- `/admin` - Admin dashboard
-- `/privacy` - Privacy policy
-
-## 🎨 Design Features
-
-- Modern, clean UI with TailwindCSS
-- Responsive design for mobile and desktop
-- Loading states and error handling
-- Interactive donor map with Leaflet
-- Real-time data updates
-- Bilingual interface (English/Nepali)
-
-## 📊 Project Statistics
-
-- **Files**: 100+
-- **Lines of Code**: 5000+
-- **Database Tables**: 8
-- **API Endpoints**: 20+
-- **React Components**: 15+
-
-## 👨‍💻 Developer
-
-**Badal Shrestha**  
-Second Year Project  
-March 2026
-
-## 📄 License
-
-This project is developed as educational software for academic purposes.
-
-## 🆘 Support
-
-For issues or questions:
-- Email: privacy@lifelink.org
-- GitHub: Check repository issues
-
----
-
-**Made with ❤️ for saving lives across Nepal**
+- This project is maintained as an academic second-year project.
+- For a fast evaluator setup, see QUICKSTART.md.
