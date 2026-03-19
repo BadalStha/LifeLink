@@ -21,6 +21,7 @@ import adminPanelRouter from './routes/adminPanel.js';
 import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
 import hospitalsRouter from './routes/hospitals.js';
+import chatbotRouter from './routes/chatbot.js';
 
 const app = express();
 
@@ -578,6 +579,7 @@ app.use('/api/admin', adminPanelRouter);
 app.use('/api', announcementsRouter);
 app.use('/api', chatRouter);
 app.use('/api', hospitalsRouter);
+app.use('/api/chatbot', chatbotRouter);
 
 // Centralized error handler (must be after all routes)
 app.use(errorHandler);

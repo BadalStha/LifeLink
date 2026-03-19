@@ -24,77 +24,81 @@ import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
 import HelpRequestDetail from './views/HelpRequestDetail';
+import ChatbotWidget from './Components/ChatbotWidget';
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Auth />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/request-help" element={<RequestHelp />} />
-      <Route path="/request/:id" element={<HelpRequestDetail />} />
-      <Route path="/privacy" element={<Privacy />} />
-      <Route path="/about" element={<About />} />
-      <Route 
-        path="/find-donors" 
-        element={
-          <ProtectedRoute>
-            <FindDonors />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/donor/:id" 
-        element={
-            <DonorProfile />
-        } 
-      />
-      <Route 
-        path="/chat" 
-        element={
-          <ProtectedRoute>
-            <Chat />
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/profile" 
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } 
-      />
-      <Route
-        path="/donation-preferences"
-        element={
-          <ProtectedRoute>
-            <DonationPreferences />
-          </ProtectedRoute>
-        }
-      />
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } 
-      />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route
-        path="/admin"
-        element={
-          <AdminProtectedRoute>
-            <Admin />
-          </AdminProtectedRoute>
-        }
-      />
-      <Route path="/hospital/login" element={<HospitalLogin />} />
-      <Route path="/hospital" element={<Hospital />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Auth />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/request-help" element={<RequestHelp />} />
+        <Route path="/request/:id" element={<HelpRequestDetail />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/about" element={<About />} />
+        <Route 
+          path="/find-donors" 
+          element={
+            <ProtectedRoute>
+              <FindDonors />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/donor/:id" 
+          element={
+              <DonorProfile />
+          } 
+        />
+        <Route 
+          path="/chat" 
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        <Route
+          path="/donation-preferences"
+          element={
+            <ProtectedRoute>
+              <DonationPreferences />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route
+          path="/admin"
+          element={
+            <AdminProtectedRoute>
+              <Admin />
+            </AdminProtectedRoute>
+          }
+        />
+        <Route path="/hospital/login" element={<HospitalLogin />} />
+        <Route path="/hospital" element={<Hospital />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      <ChatbotWidget />
+    </>
   );
 }
