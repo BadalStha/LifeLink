@@ -184,6 +184,16 @@ const ensureSchema = async () => {
         )
     `);
 
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS admin_user_reviews (
+            user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            review_note TEXT,
+            reviewed_by VARCHAR(255),
+            reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
     // Ensure donation columns exist on older databases that predate the schema update
     await pool.query(`
         ALTER TABLE users

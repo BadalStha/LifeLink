@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft, Send, Search, MessageCircle, Loader2,
-  User, CheckCheck, Clock, ArrowRight, BadgeCheck
+  User, CheckCheck, Clock, ArrowRight, BadgeCheck, Droplets
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { messagesAPI, usersAPI, API_BASE_URL } from '../services/api';
@@ -265,12 +265,26 @@ export default function Chat() {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 font-sans">
-      {/* Top Bar */}
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4 shrink-0">
-        <button onClick={() => navigate('/')} className="text-slate-500 hover:text-red-600 transition-all">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-xl font-black text-slate-900">Messages</h1>
+      {/* Navbar */}
+      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between shrink-0 z-40 relative">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/')} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-all">
+            <ArrowLeft size={18}/>
+          </button>
+          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center">
+              <Droplets size={14} className="text-white"/>
+            </div>
+            <span className="font-black text-slate-900 hidden sm:block">LifeLink</span>
+          </div>
+          <span className="text-slate-300 mx-1">|</span>
+          <span className="font-bold text-slate-700 text-sm">Messages</span>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => navigate('/profile')} className="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg text-sm hover:bg-black transition-all">
+            My Profile
+          </button>
+        </div>
       </nav>
 
       <div className="flex flex-1 overflow-hidden">
