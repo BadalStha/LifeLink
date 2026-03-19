@@ -21,6 +21,7 @@ import adminPanelRouter from './routes/adminPanel.js';
 import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
 import hospitalsRouter from './routes/hospitals.js';
+import chatbotRouter from './routes/chatbot.js';
 
 const app = express();
 
@@ -180,6 +181,16 @@ const ensureSchema = async () => {
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(admin_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS admin_user_reviews (
+            user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            review_note TEXT,
+            reviewed_by VARCHAR(255),
+            reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
 
@@ -578,6 +589,7 @@ app.use('/api/admin', adminPanelRouter);
 app.use('/api', announcementsRouter);
 app.use('/api', chatRouter);
 app.use('/api', hospitalsRouter);
+app.use('/api/chatbot', chatbotRouter);
 
 // Centralized error handler (must be after all routes)
 app.use(errorHandler);
