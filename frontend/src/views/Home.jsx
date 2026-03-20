@@ -21,6 +21,8 @@ import {
   Droplets,
   MapPin,
   ChevronRight,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI, notificationsAPI, announcementsAPI } from '../services/api';
@@ -227,7 +229,7 @@ export default function Home() {
       step: 'Step',
       english: 'EN',
       nepali: 'नेपाली',
-      footerTagline: 'Connecting donors and recipients across Nepal.',
+      footerTagline: 'Connecting donors and recipients across Nepal. Join our trusted community to save lives, coordinate emergency blood and organ matching, and make a lasting impact.',
       footerLinks: 'Quick Links',
       footerContact: 'Support',
       copyright: '© 2025 LifeLink Nepal. Saving lives together.',
@@ -290,7 +292,7 @@ export default function Home() {
       step: 'चरण',
       english: 'EN',
       nepali: 'नेपाली',
-      footerTagline: 'नेपालभर दाता र प्राप्तकर्तालाई जोड्दै।',
+      footerTagline: 'नेपालभर दाता र प्राप्तकर्तालाई जोड्दै। जीवन बचाउन, आपतकालीन रगत र अंग मिलान समन्वय गर्न, र दिगो प्रभाव पार्न हाम्रो विश्वसनीय समुदायमा सामेल हुनुहोस्।',
       footerLinks: 'द्रुत लिंकहरू',
       footerContact: 'सहयोग',
       copyright: '© २०२५ LifeLink Nepal. सँगै जीवन बचाउँदै।',
@@ -742,7 +744,7 @@ export default function Home() {
       {/* ==================== FOOTER ==================== */}
       <footer className="bg-slate-900 text-slate-400 py-12 px-5 md:px-12">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 pb-8 border-b border-slate-800">
+          <div className="grid md:grid-cols-4 gap-8 pb-8 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
@@ -779,6 +781,14 @@ export default function Home() {
                 <p className="flex items-center gap-2"><ShieldCheck size={13} className="text-green-500"/> Verified donor network</p>
                 <p className="flex items-center gap-2"><Clock3 size={13} className="text-blue-400"/> 24/7 emergency support</p>
                 <p className="flex items-center gap-2"><MapPin size={13} className="text-red-400"/> All 77 districts of Nepal</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-white font-bold text-sm mb-3">Contact Us</p>
+              <div className="space-y-3 text-sm">
+                <a href="tel:+97714222222" className="flex items-center gap-2 hover:text-white transition-colors"><Phone size={13} className="text-emerald-400"/> +977 1-4222222</a>
+                <a href="https://wa.me/9779841234567" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition-colors"><MessageCircle size={13} className="text-green-500"/> +977 9841234567</a>
+                <a href="mailto:lifelink.nepal@gmail.com" className="flex items-center gap-2 hover:text-white transition-colors"><Mail size={13} className="text-blue-400"/> lifelink.nepal@gmail.com</a>
               </div>
             </div>
           </div>

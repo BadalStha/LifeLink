@@ -207,6 +207,13 @@ const ensureSchema = async () => {
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS profile_picture TEXT
     `).catch(() => {});
+
+    // Ensure newer schema columns exist
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS fulfillment_date DATE`).catch(() => {});
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE notification_logs ALTER COLUMN channel TYPE VARCHAR(100)`).catch(() => {});
 };
 
 const ensurePasswordResetTable = async () => {
