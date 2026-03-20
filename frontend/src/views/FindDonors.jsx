@@ -8,6 +8,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-le
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { usersAPI, API_BASE_URL } from '../services/api';
+import { useChatContext } from '../context/ChatContext';
 import { BLOOD_TYPES, ORGAN_TYPES } from '../data/constants';
 
 // Fix default leaflet icon
@@ -442,6 +443,7 @@ function ContactModal({ donor, onClose, isAuthenticated, onLogin, onStartChat })
 // ─── Main Page ───────────────────────────────────────────────────────────────
 export default function FindDonors() {
   const navigate = useNavigate();
+  const { openChat } = useChatContext();
   const [donors, setDonors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({ blood_type: '', organ_type: '', city: '', name: '' });
@@ -635,7 +637,7 @@ export default function FindDonors() {
           onClose={() => setSelectedDonor(null)}
           isAuthenticated={isAuthenticated}
           onLogin={() => navigate('/login')}
-          onStartChat={(donorId) => navigate(`/chat?to=${donorId}`)}
+          onStartChat={(donorId) => openChat(String(donorId))}
         />
       )}
 

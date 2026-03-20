@@ -13,9 +13,9 @@ import {
   CheckCircle,
   XCircle,
   Loader2,
-  MessageCircle,
 } from 'lucide-react';
 import { requestsAPI } from '../services/api';
+import { useChatContext } from '../context/ChatContext';
 
 const urgencyConfig = {
   critical: { label: 'Critical', color: 'bg-red-100 text-red-700 border-red-200', dot: 'bg-red-500' },
@@ -41,6 +41,7 @@ function formatDate(dateStr) {
 export default function HelpRequestDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openChat } = useChatContext();
   const [request, setRequest] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -253,7 +254,7 @@ export default function HelpRequestDetail() {
             {request.status === 'open' && (
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => navigate(`/chat?to=${request.requester_id}`)}
+                  onClick={() => openChat(String(request.requester_id))}
                   className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-blue-600 text-white font-bold hover:bg-blue-700 transition-all shadow-md"
                 >
                   <MessageCircle size={18} /> Contact via Chat

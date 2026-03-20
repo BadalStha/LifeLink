@@ -25,11 +25,13 @@ import {
   Phone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChatContext } from '../context/ChatContext';
 import { dashboardAPI, notificationsAPI, announcementsAPI } from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { openChat } = useChatContext();
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [language, setLanguage] = useState('en');
   const [stats, setStats] = useState(null);
@@ -160,7 +162,7 @@ export default function Home() {
       updated.add(item.id);
       setReadMessageIds(updated);
       localStorage.setItem('ll_read_msg_notifs', JSON.stringify([...updated]));
-      navigate(`/chat?to=${item.reference_id}`);
+      openChat(String(item.reference_id));
       return;
     }
     if (item.type === 'request' && item.reference_id) {
@@ -399,7 +401,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <button onClick={() => navigate('/chat')} className="p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600">
+              <button onClick={() => openChat(null)} className="p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600">
                 <MessageCircle size={18}/>
               </button>
               <button

@@ -5,10 +5,12 @@ import {
   Calendar, Loader2, AlertCircle, Droplets, MessageCircle, Shield, Clock, User, BadgeCheck
 } from 'lucide-react';
 import { usersAPI, API_BASE_URL } from '../services/api';
+import { useChatContext } from '../context/ChatContext';
 
 export default function DonorProfile() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { openChat } = useChatContext();
   const [donor, setDonor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -115,7 +117,7 @@ export default function DonorProfile() {
         </div>
         {isAuthenticated && (
           <button
-            onClick={() => navigate(`/chat?to=${donor.id}`)}
+            onClick={() => openChat(String(donor.id))}
             className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white font-bold rounded-lg text-sm hover:bg-red-700 transition-all"
           >
             <MessageCircle size={16} /> Message
@@ -276,7 +278,7 @@ export default function DonorProfile() {
           <div className="flex flex-wrap gap-3">
             {isAuthenticated ? (
               <button
-                onClick={() => navigate(`/chat?to=${donor.id}`)}
+                onClick={() => openChat(String(donor.id))}
                 className="flex items-center gap-2 px-5 py-3 bg-white text-red-700 font-black rounded-xl hover:bg-red-50 transition-all"
               >
                 <MessageCircle size={18} /> Send Message
