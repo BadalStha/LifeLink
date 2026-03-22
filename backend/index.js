@@ -17,13 +17,22 @@ import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
 import donorsRouter from './routes/donors.js';
 import adminAuthRouter from './routes/adminAuth.js';
-import adminPanelRouter from './routes/adminPanel.js';
+import adminPanelRouter, { ensureAdminTables } from './routes/adminPanel.js';
 import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
 import hospitalsRouter from './routes/hospitals.js';
 import chatbotRouter from './routes/chatbot.js';
 
 const app = express();
+
+(async () => {
+    try {
+        await ensureAdminTables();
+        console.log('Database tables verified');
+    } catch (err) {
+        console.error('Database initialization error:', err);
+    }
+})();
 
 // Middleware
 app.use(cors());

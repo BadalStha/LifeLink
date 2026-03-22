@@ -16,7 +16,7 @@ const mailer = nodemailer.createTransport({
     },
 });
 
-const ensureAdminTables = async () => {
+export const ensureAdminTables = async () => {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS admin_user_reviews (
             user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -26,6 +26,43 @@ const ensureAdminTables = async () => {
             reviewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS user_kyc (
+            user_id INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            document_type VARCHAR(50) NOT NULL,
+            document_number VARCHAR(100) NOT NULL,
+            issued_date DATE,
+            issued_district VARCHAR(100),
+            gender VARCHAR(20),
+            father_name VARCHAR(255),
+            grandfather_name VARCHAR(255),
+            occupation VARCHAR(100),
+            marital_status VARCHAR(50),
+            permanent_address TEXT,
+            current_address TEXT,
+            front_image VARCHAR(255) NOT NULL,
+            back_image VARCHAR(255),
+            selfie_image VARCHAR(255) NOT NULL,
+            submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+
+    // Ensure all columns exist for existing tables
+    const kycColumns = [
+        ['gender', 'VARCHAR(20)'],
+        ['father_name', 'VARCHAR(255)'],
+        ['grandfather_name', 'VARCHAR(255)'],
+        ['occupation', 'VARCHAR(100)'],
+        ['marital_status', 'VARCHAR(50)'],
+        ['permanent_address', 'TEXT'],
+        ['current_address', 'TEXT']
+    ];
+
+    for (const [col, type] of kycColumns) {
+        await pool.query(`ALTER TABLE user_kyc ADD COLUMN IF NOT EXISTS ${col} ${type}`).catch(() => {});
+    }
 
     await pool.query(`
         CREATE TABLE IF NOT EXISTS notification_templates (
@@ -246,6 +283,10 @@ router.get('/users/:id/profile', async (req, res) => {
                 `SELECT id, organ_type, blood_type, donation_date, status
                  FROM organ_donations WHERE donor_id = $1 ORDER BY donation_date DESC LIMIT 20`,
                 [userId]
+            ),
+            pool.query(
+                `SELECT * FROM user_kyc WHERE user_id = $1`,
+                [userId]
             )
         ]);
 
@@ -257,7 +298,8 @@ router.get('/users/:id/profile', async (req, res) => {
             user: profile.rows[0],
             requests: requests.rows,
             blood_donations: bloodHistory.rows,
-            organ_donations: organHistory.rows
+            organ_donations: organHistory.rows,
+            kyc: kyc.rows[0] || null
         });
     } catch (err) {
         console.error('Admin user profile error:', err);

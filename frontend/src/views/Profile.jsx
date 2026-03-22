@@ -3,24 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import {
   History, Settings, MapPin, LogOut, Loader2,
   HandHeart, ToggleLeft, ToggleRight, AlertTriangle, Heart,
-  Droplets, Mail, Shield, Award, ChevronRight, Pencil, BadgeCheck
+  Droplets, Mail, Shield, Award, ChevronRight, Pencil, BadgeCheck,
+  FileText, Camera, Upload, CheckCircle, XCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, usersAPI, requestsAPI, API_BASE_URL } from '../services/api';
+import KYCModal from '../Components/KYCModal';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [userStats, setUserStats] = useState(null);
+  const [kycData, setKycData] = useState(null);
   const [donationHistory, setDonationHistory] = useState([]);
   const [myRequests, setMyRequests] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isKycLoading, setIsKycLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('history');
   const [isToggling, setIsToggling] = useState(false);
   const [cancellingRequestId, setCancellingRequestId] = useState(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +46,15 @@ export default function Profile() {
         setUserStats(statsData.stats);
         setDonationHistory(historyData.history);
         setMyRequests(requestsData.requests || []);
+
+        try {
+          const kyc = await authAPI.getKycStatus();
+          setKycData(kyc.kyc);
+        } catch (err) {
+          if (err.message.includes('404')) {
+            setKycData(null);
+          }
+        }
       } catch (err) {
         const message = err.message || 'Unable to load profile';
         if (/401|403|token|expired|invalid/i.test(message)) {
@@ -119,6 +133,13 @@ export default function Profile() {
       setIsUploadingAvatar(false);
       e.target.value = '';
     }
+  };
+
+  const handleKycSuccess = () => {
+    // Refresh KYC data
+    authAPI.getKycStatus()
+      .then(kyc => setKycData(kyc.kyc))
+      .catch(() => setKycData(null));
   };
 
   if (isLoading) {
@@ -245,8 +266,30 @@ export default function Profile() {
                 <h1 className="text-2xl md:text-3xl font-black text-slate-900 truncate">
                   {profileData?.name || 'User'}
                 </h1>
-                {profileData?.verification_status === 'approved' && (
-                  <BadgeCheck size={22} className="text-blue-500 shrink-0" />
+                {kycData?.verification_status === 'approved' ? (
+                  <div className="flex items-center gap-1 bg-blue-50 text-blue-600 px-2.5 py-1 rounded-full border border-blue-100 shadow-sm shadow-blue-50">
+                    <BadgeCheck size={18} className="shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Verified</span>
+                  </div>
+                ) : kycData?.verification_status === 'pending' ? (
+                  <div className="flex items-center gap-1 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-full border border-amber-100 shadow-sm shadow-amber-50">
+                    <Loader2 size={14} className="shrink-0 animate-spin" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Pending</span>
+                  </div>
+                ) : kycData?.verification_status === 'rejected' ? (
+                  <div className="flex items-center gap-1 bg-red-50 text-red-600 px-2.5 py-1 rounded-full border border-red-100 shadow-sm shadow-red-50 cursor-help" title={kycData.review_note || 'Verification rejected'}>
+                    <XCircle size={14} className="shrink-0" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Rejected</span>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setShowKycModal(true)}
+                    className="flex items-center gap-1 bg-slate-900 text-white px-3 py-1.5 rounded-xl border border-slate-800 shadow-lg shadow-slate-200 hover:bg-black transition-all group"
+                  >
+                    <Shield size={14} className="shrink-0 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-wider">Verify Identity</span>
+                    <ChevronRight size={10} className="shrink-0 opacity-50 group-hover:translate-x-0.5 transition-transform" />
+                  </button>
                 )}
               </div>
               <div className="flex flex-wrap justify-center md:justify-start items-center gap-2 mt-2">
@@ -525,6 +568,12 @@ export default function Profile() {
           </div>
         </div>
       </div>
+      <KYCModal
+        isOpen={showKycModal}
+        onClose={() => setShowKycModal(false)}
+        onSuccess={handleKycSuccess}
+        user={profileData}
+      />
     </div>
   );
 }
