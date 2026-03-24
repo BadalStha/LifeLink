@@ -235,6 +235,10 @@ export default function Home() {
       footerLinks: 'Quick Links',
       footerContact: 'Support',
       copyright: '© 2025 LifeLink Nepal. Saving lives together.',
+      authenticatedTitle: 'Manage Your Help Requests',
+      authenticatedDesc: 'You can submit a new emergency request or view the status of your existing ones in your profile.',
+      viewMyRequests: 'View My Requests',
+      submitNewRequest: 'Submit New Request',
     },
     np: {
       topBar: 'नेपाल आपतकालीन स्वास्थ्य सहयोग सञ्जाल | २४/७ समन्वित दाता मिलान',
@@ -298,6 +302,10 @@ export default function Home() {
       footerLinks: 'द्रुत लिंकहरू',
       footerContact: 'सहयोग',
       copyright: '© २०२५ LifeLink Nepal. सँगै जीवन बचाउँदै।',
+      authenticatedTitle: 'सहयोग अनुरोध व्यवस्थापन गर्नुहोस्',
+      authenticatedDesc: 'तपाईं नयाँ आपतकालीन अनुरोध पठाउन सक्नुहुन्छ वा आफ्नो प्रोफाइलमा पुराना अनुरोधहरूको अवस्था हेर्न सक्नुहुन्छ।',
+      viewMyRequests: 'मेरो अनुरोधहरू हेर्नुहोस्',
+      submitNewRequest: 'नयाँ अनुरोध पठाउनुहोस्',
     },
   };
 
@@ -812,16 +820,35 @@ export default function Home() {
             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-5">
               <AlertTriangle size={28}/>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">{t.requestHelpModal}</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">
+              {isAuthenticated ? t.authenticatedTitle : t.requestHelpModal}
+            </h3>
             <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              {t.requestHelpDesc}
+              {isAuthenticated ? t.authenticatedDesc : t.requestHelpDesc}
             </p>
-            <button
-              onClick={() => { setShowEmergencyModal(false); navigate('/register'); }}
-              className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
-            >
-              <HandHeart size={18}/> {t.registerAndHelp}
-            </button>
+            {isAuthenticated ? (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => { setShowEmergencyModal(false); navigate('/request-help'); }}
+                  className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
+                >
+                  <HandHeart size={18}/> {t.submitNewRequest}
+                </button>
+                <button
+                  onClick={() => { setShowEmergencyModal(false); navigate('/profile?tab=requests'); }}
+                  className="w-full bg-slate-100 text-slate-700 p-4 rounded-2xl font-black text-base hover:bg-slate-200 transition-all flex items-center justify-center gap-2.5"
+                >
+                  <AlertTriangle size={18}/> {t.viewMyRequests}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setShowEmergencyModal(false); navigate('/register'); }}
+                className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
+              >
+                <HandHeart size={18}/> {t.registerAndHelp}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   History, Settings, MapPin, LogOut, Loader2,
   HandHeart, ToggleLeft, ToggleRight, AlertTriangle, Heart,
@@ -12,6 +12,7 @@ import KYCModal from '../Components/KYCModal';
 
 export default function Profile() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [userStats, setUserStats] = useState(null);
@@ -27,6 +28,16 @@ export default function Profile() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [showKycModal, setShowKycModal] = useState(false);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    if (tab === 'requests') {
+      setActiveTab('requests');
+    } else if (tab === 'history') {
+      setActiveTab('history');
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const fetchAllData = async () => {
