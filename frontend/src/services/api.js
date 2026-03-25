@@ -7,7 +7,7 @@ const getAuthToken = () => {
 };
 
 const getAdminToken = () => {
-  return localStorage.getItem('adminToken');
+  return localStorage.getItem('adminToken') || localStorage.getItem('authToken');
 };
 
 // Helper to handle API errors
@@ -263,15 +263,6 @@ export const donorsAPI = {
 };
 
 export const adminAPI = {
-  login: async (email, password) => {
-    const response = await fetch(`${API_BASE_URL}/api/admin/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    return handleResponse(response);
-  },
-
   getOverview: async () => {
     const response = await adminFetch(`${API_BASE_URL}/api/admin/overview`);
     return handleResponse(response);

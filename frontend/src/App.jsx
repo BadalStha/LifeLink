@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
@@ -9,7 +9,6 @@ import Auth from './views/Auth';
 import Profile from './views/Profile';
 import Settings from './views/Settings';
 import Admin from './views/Admin';
-import AdminLogin from './views/AdminLogin';
 import HospitalLogin from './views/HospitalLogin';
 import Hospital from './views/Hospital';
 import Register from './views/Register';
@@ -23,12 +22,15 @@ import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
 import HelpRequestDetail from './views/HelpRequestDetail';
-import ChatbotWidget from './Components/ChatbotWidget';
+import ChatbotWidget from './components/ChatbotWidget';
 import { ChatProvider } from './context/ChatContext';
 import GlobalChat from './components/GlobalChat';
 import ChatView from './views/ChatView';
 
 export default function App() {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
   return (
     <ChatProvider>
       <Routes>
@@ -87,7 +89,7 @@ export default function App() {
             </ProtectedRoute>
           } 
         />
-        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/login" element={<Navigate to="/login" replace />} />
         <Route
           path="/admin"
           element={
@@ -100,8 +102,8 @@ export default function App() {
         <Route path="/hospital" element={<Hospital />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      <ChatbotWidget />
-      <GlobalChat />
+      {!isAdminRoute && <ChatbotWidget />}
+      {!isAdminRoute && <GlobalChat />}
     </ChatProvider>
   );
 }

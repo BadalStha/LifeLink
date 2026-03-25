@@ -25,7 +25,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import DonorMap from '../components/DonorMap';
-import { adminAPI } from '../services/api';
+import { adminAPI, API_BASE_URL } from '../services/api';
 import { NEPAL_HOSPITALS } from '../data/constants';
 
 /* ------------------------------------------------------------------ */
@@ -264,6 +264,7 @@ export default function Admin() {
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [verificationFilter, setVerificationFilter] = useState('');
   const [requestStatusFilter, setRequestStatusFilter] = useState('open');
 
   const [selectedUserProfile, setSelectedUserProfile] = useState(null);
@@ -290,7 +291,7 @@ export default function Admin() {
 
       const [overviewData, usersData, requestsData, hospitalsData, logsData, announcementsData, settingsResp] = await Promise.all([
         adminAPI.getOverview(),
-        adminAPI.getUsers({ search: searchQuery, role: roleFilter, status: statusFilter, limit: 100 }),
+        adminAPI.getUsers({ search: searchQuery, role: roleFilter, status: statusFilter, verification: verificationFilter, limit: 100 }),
         adminAPI.getRequests({ status: requestStatusFilter, limit: 100 }),
         adminAPI.getHospitals(),
         adminAPI.getNotificationLogs(),
@@ -313,15 +314,17 @@ export default function Admin() {
     }
   };
 
-  useEffect(() => { loadAll(); }, [searchQuery, roleFilter, statusFilter, requestStatusFilter]);
+  useEffect(() => { loadAll(); }, [searchQuery, roleFilter, statusFilter, verificationFilter, requestStatusFilter]);
 
   /* ---------- handlers ---------- */
 
   const handleAdminLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     localStorage.removeItem('adminToken');
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('adminEmail');
-    navigate('/admin/login');
+    navigate('/login');
   };
 
   const openUserProfile = async (id) => {
@@ -468,7 +471,7 @@ export default function Admin() {
     if (activeTab === 'users') {
       return (
         <div className="space-y-6">
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid sm:grid-cols-4 gap-3">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -489,6 +492,13 @@ export default function Admin() {
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+            </select>
+            <select value={verificationFilter} onChange={(e) => setVerificationFilter(e.target.value)} className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-900">
+              <option value="">All KYC States</option>
+              <option value="pending">KYC Pending Review</option>
+              <option value="approved">KYC Approved</option>
+              <option value="rejected">KYC Rejected</option>
+              <option value="awaiting_submission">Awaiting KYC Submission</option>
             </select>
           </div>
 
@@ -534,7 +544,13 @@ export default function Admin() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1.5">
                           {u.verification_status !== 'approved' && (
-                            <button onClick={() => handleUserVerification(u.id, 'approved')} className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors">Verify</button>
+                            <button
+                              onClick={() => u.has_kyc && openUserProfile(u.id)}
+                              disabled={!u.has_kyc}
+                              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${u.has_kyc ? 'text-blue-700 bg-blue-50 hover:bg-blue-100' : 'text-slate-400 bg-slate-100 cursor-not-allowed'}`}
+                            >
+                              {u.has_kyc ? 'Review KYC' : 'Awaiting KYC'}
+                            </button>
                           )}
                           {u.is_active ? (
                             <button onClick={() => toggleUserActive(u)} className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors">Deactivate</button>
@@ -1006,7 +1022,7 @@ export default function Admin() {
         </div>
       </div>
     );
-  }, [activeTab, users, requests, hospitals, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, requestStatusFilter, broadcastForm, broadcastStatus, broadcastPreview, hospitalEdit, showCreateHospital, createHospitalForm, createHospitalError, createHospitalSuccess]);
+  }, [activeTab, users, requests, hospitals, logs, announcements, overview, settingsData, searchQuery, roleFilter, statusFilter, verificationFilter, requestStatusFilter, broadcastForm, broadcastStatus, broadcastPreview, hospitalEdit, showCreateHospital, createHospitalForm, createHospitalError, createHospitalSuccess]);
 
   /* ---------- loading state ---------- */
 
@@ -1186,7 +1202,7 @@ export default function Admin() {
                   </div>
 
                   {/* KYC Section */}
-                  {selectedUserProfile.kyc && (
+                  {selectedUserProfile.kyc ? (
                     <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-2">
@@ -1276,7 +1292,7 @@ export default function Admin() {
                               onClick={() => handleUserVerification(selectedUserProfile.user.id, 'approved')}
                               className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
                             >
-                              <CheckCircle2 size={14} /> Approve KYC
+                              <CheckCircle2 size={14} /> Validate User
                             </button>
                             <button
                               onClick={() => {
@@ -1290,6 +1306,10 @@ export default function Admin() {
                           </div>
                         </div>
                       )}
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                      This user has not submitted KYC documents yet.
                     </div>
                   )}
 

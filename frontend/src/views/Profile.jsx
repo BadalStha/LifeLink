@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, usersAPI, requestsAPI, API_BASE_URL } from '../services/api';
-import KYCModal from '../Components/KYCModal';
+import KYCModal from '../components/KYCModal';
 
 export default function Profile() {
   const navigate = useNavigate();
