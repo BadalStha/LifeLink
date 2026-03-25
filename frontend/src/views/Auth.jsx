@@ -32,6 +32,16 @@ export default function Auth() {
       if (isLogin) {
         const loginData = await authAPI.login(formData.email, formData.password);
         login(loginData.user, loginData.token);
+
+        if (loginData.user?.role === 'admin') {
+          // Keep legacy admin session keys for existing admin API helpers/components.
+          localStorage.setItem('adminToken', loginData.token);
+          localStorage.setItem('isAdmin', 'true');
+          localStorage.setItem('adminEmail', loginData.user.email || formData.email);
+          navigate('/admin');
+          return;
+        }
+
         navigate('/');
         return;
       }

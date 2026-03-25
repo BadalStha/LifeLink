@@ -200,7 +200,7 @@ router.get('/overview', async (req, res) => {
 });
 
 router.get('/users', async (req, res) => {
-    const { role = '', search = '', status = '', limit = 50, offset = 0 } = req.query;
+    const { role = '', search = '', status = '', verification = '', limit = 50, offset = 0 } = req.query;
 
     try {
         await ensureAdminTables();
@@ -217,12 +217,14 @@ router.get('/users', async (req, res) => {
                 u.medical_history,
                 u.is_active,
                 u.created_at,
+                (k.user_id IS NOT NULL) AS has_kyc,
                 COALESCE(r.status, 'pending') AS verification_status,
                 r.review_note,
                 r.reviewed_by,
                 r.reviewed_at
             FROM users u
             LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+            LEFT JOIN user_kyc k ON k.user_id = u.id
             WHERE u.role != 'admin'
         `;
         const params = [];
@@ -245,6 +247,16 @@ router.get('/users', async (req, res) => {
             query += ` AND u.is_active = false`;
         }
 
+        if (verification === 'pending') {
+            query += ` AND k.user_id IS NOT NULL AND COALESCE(r.status, 'pending') = 'pending'`;
+        } else if (verification === 'approved') {
+            query += ` AND COALESCE(r.status, 'pending') = 'approved'`;
+        } else if (verification === 'rejected') {
+            query += ` AND COALESCE(r.status, 'pending') = 'rejected'`;
+        } else if (verification === 'awaiting_submission') {
+            query += ` AND k.user_id IS NULL`;
+        }
+
         query += ` ORDER BY u.created_at DESC LIMIT $${idx++} OFFSET $${idx}`;
         params.push(Number(limit), Number(offset));
 
@@ -263,10 +275,17 @@ router.get('/users/:id/profile', async (req, res) => {
     }
 
     try {
-        const [profile, requests, bloodHistory, organHistory] = await Promise.all([
+        const [profile, requests, bloodHistory, organHistory, kyc] = await Promise.all([
             pool.query(
-                `SELECT id, name, email, role, phone, city, address, blood_type, age, medical_history, is_active, created_at
-                 FROM users WHERE id = $1`,
+                `SELECT u.id, u.name, u.email, u.role, u.phone, u.city, u.address, u.blood_type, u.age,
+                        u.medical_history, u.is_active, u.created_at,
+                        COALESCE(r.status, 'pending') AS verification_status,
+                        r.review_note,
+                        r.reviewed_by,
+                        r.reviewed_at
+                 FROM users u
+                 LEFT JOIN admin_user_reviews r ON r.user_id = u.id
+                 WHERE u.id = $1`,
                 [userId]
             ),
             pool.query(
@@ -285,7 +304,11 @@ router.get('/users/:id/profile', async (req, res) => {
                 [userId]
             ),
             pool.query(
-                `SELECT * FROM user_kyc WHERE user_id = $1`,
+                `SELECT k.*, COALESCE(r.status, 'pending') AS verification_status,
+                        r.review_note, r.reviewed_by, r.reviewed_at
+                 FROM user_kyc k
+                 LEFT JOIN admin_user_reviews r ON r.user_id = k.user_id
+                 WHERE k.user_id = $1`,
                 [userId]
             )
         ]);
@@ -325,6 +348,13 @@ router.patch('/users/:id/verification', async (req, res) => {
         const userResult = await pool.query('SELECT id FROM users WHERE id = $1', [userId]);
         if (!userResult.rows[0]) {
             return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (status === 'approved') {
+            const kycResult = await pool.query('SELECT user_id FROM user_kyc WHERE user_id = $1', [userId]);
+            if (!kycResult.rows[0]) {
+                return res.status(400).json({ error: 'User has not submitted KYC documents' });
+            }
         }
 
         await pool.query(
