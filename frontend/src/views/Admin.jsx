@@ -336,10 +336,14 @@ export default function Admin() {
     }
   };
 
-  const verifyUser = async (id) => {
+  const handleUserVerification = async (id, status, review_note = '') => {
     try {
-      await adminAPI.updateUserVerification(id, { status: 'approved', review_note: '' });
+      await adminAPI.updateUserVerification(id, { status, review_note });
       await loadAll();
+      if (selectedUserProfile && selectedUserProfile.user.id === id) {
+        const data = await adminAPI.getUserProfile(id);
+        setSelectedUserProfile(data);
+      }
     } catch (err) {
       alert(err.message || 'Failed to update verification');
     }
@@ -530,7 +534,7 @@ export default function Admin() {
                       <td className="px-4 py-3">
                         <div className="flex justify-end gap-1.5">
                           {u.verification_status !== 'approved' && (
-                            <button onClick={() => verifyUser(u.id)} className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors">Verify</button>
+                            <button onClick={() => handleUserVerification(u.id, 'approved')} className="px-2.5 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-md transition-colors">Verify</button>
                           )}
                           {u.is_active ? (
                             <button onClick={() => toggleUserActive(u)} className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 hover:bg-red-100 rounded-md transition-colors">Deactivate</button>
@@ -1180,6 +1184,114 @@ export default function Admin() {
                     <Info label="Address" value={selectedUserProfile.user.address} />
                     <Info label="Medical History" value={selectedUserProfile.user.medical_history} />
                   </div>
+
+                  {/* KYC Section */}
+                  {selectedUserProfile.kyc && (
+                    <div className="bg-slate-50 rounded-xl p-6 border border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Shield size={18} className="text-red-600" />
+                          <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider">KYC Verification Documents</h4>
+                        </div>
+                        <Badge variant={selectedUserProfile.kyc.verification_status === 'approved' ? 'green' : selectedUserProfile.kyc.verification_status === 'rejected' ? 'red' : 'amber'}>
+                          {selectedUserProfile.kyc.verification_status.toUpperCase()}
+                        </Badge>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Document Type</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.document_type}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Document Number</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.document_number}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Issued Date/District</p>
+                          <p className="text-sm font-bold text-slate-900">
+                            {formatDate(selectedUserProfile.kyc.issued_date)} / {selectedUserProfile.kyc.issued_district || '-'}
+                          </p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Gender</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.gender || '-'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Occupation</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.occupation || '-'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Marital Status</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.marital_status || '-'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Father's Name</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.father_name || '-'}</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grandfather's Name</p>
+                          <p className="text-sm font-bold text-slate-900">{selectedUserProfile.kyc.grandfather_name || '-'}</p>
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100">
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Permanent Address</p>
+                          <p className="text-sm font-semibold text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-100 italic">
+                            {selectedUserProfile.kyc.permanent_address || 'Not Provided'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current Address</p>
+                          <p className="text-sm font-semibold text-slate-700 leading-relaxed bg-white p-3 rounded-lg border border-slate-100 italic">
+                            {selectedUserProfile.kyc.current_address || 'Not Provided'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid sm:grid-cols-3 gap-4 mt-6">
+                        {[
+                          { label: 'Front Image', path: selectedUserProfile.kyc.front_image },
+                          { label: 'Back Image', path: selectedUserProfile.kyc.back_image },
+                          { label: 'Selfie with ID', path: selectedUserProfile.kyc.selfie_image },
+                        ].map((img, i) => img.path && (
+                          <div key={i} className="space-y-2">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{img.label}</p>
+                            <a href={`${API_BASE_URL}${img.path}`} target="_blank" rel="noreferrer" className="block relative aspect-video rounded-lg overflow-hidden border border-slate-200 hover:ring-2 hover:ring-red-500 transition-all group">
+                              <img src={`${API_BASE_URL}${img.path}`} alt={img.label} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-white uppercase tracking-wider">View Full Size</span>
+                              </div>
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+
+                      {selectedUserProfile.kyc.verification_status !== 'approved' && (
+                        <div className="mt-6 pt-6 border-t border-slate-200">
+                          <p className="text-xs font-bold text-slate-800 mb-3 uppercase">Actions</p>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => handleUserVerification(selectedUserProfile.user.id, 'approved')}
+                              className="flex-1 py-2.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <CheckCircle2 size={14} /> Approve KYC
+                            </button>
+                            <button
+                              onClick={() => {
+                                const note = window.prompt('Reason for rejection?');
+                                if (note !== null) handleUserVerification(selectedUserProfile.user.id, 'rejected', note);
+                              }}
+                              className="flex-1 py-2.5 bg-red-50 text-red-600 border border-red-100 text-xs font-bold rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <XCircle size={14} /> Reject KYC
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <DataTable title="Donation Requests" rows={selectedUserProfile.requests} columns={['request_type', 'blood_type', 'organ_type', 'urgency', 'status', 'location']} />
                   <DataTable title="Blood Donations" rows={selectedUserProfile.blood_donations} columns={['blood_type', 'units', 'location', 'status', 'donation_date']} />

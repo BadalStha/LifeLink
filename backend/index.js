@@ -17,13 +17,22 @@ import dashboardRouter from './routes/dashboard.js';
 import alertsRouter from './routes/alerts.js';
 import donorsRouter from './routes/donors.js';
 import adminAuthRouter from './routes/adminAuth.js';
-import adminPanelRouter from './routes/adminPanel.js';
+import adminPanelRouter, { ensureAdminTables } from './routes/adminPanel.js';
 import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
 import hospitalsRouter from './routes/hospitals.js';
 import chatbotRouter from './routes/chatbot.js';
 
 const app = express();
+
+(async () => {
+    try {
+        await ensureAdminTables();
+        console.log('Database tables verified');
+    } catch (err) {
+        console.error('Database initialization error:', err);
+    }
+})();
 
 // Middleware
 app.use(cors());
@@ -207,6 +216,13 @@ const ensureSchema = async () => {
         ALTER TABLE users
         ADD COLUMN IF NOT EXISTS profile_picture TEXT
     `).catch(() => {});
+
+    // Ensure newer schema columns exist
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS fulfillment_date DATE`).catch(() => {});
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
+    await pool.query(`ALTER TABLE notification_logs ALTER COLUMN channel TYPE VARCHAR(100)`).catch(() => {});
 };
 
 const ensurePasswordResetTable = async () => {

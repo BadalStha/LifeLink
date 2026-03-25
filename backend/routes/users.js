@@ -65,6 +65,131 @@ router.post('/profile/avatar', verifyToken, uploadAvatar.single('avatar'), async
     }
 });
 
+// Multer config for KYC uploads
+const kycDir = path.join(__dirname, '../uploads/kyc');
+fs.mkdirSync(kycDir, { recursive: true });
+
+const kycStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, kycDir),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+        const fieldName = file.fieldname;
+        cb(null, `kyc-${req.userId}-${fieldName}-${Date.now()}${ext}`);
+    },
+});
+
+const uploadKyc = multer({
+    storage: kycStorage,
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter: (_req, file, cb) => {
+        if (/^image\/(jpeg|jpg|png|webp)$/.test(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files (JPEG, PNG, WebP) are allowed'));
+        }
+    },
+});
+
+// POST /api/profile/kyc - Upload KYC documents
+router.post('/profile/kyc', verifyToken, uploadKyc.fields([
+    { name: 'front_image', maxCount: 1 },
+    { name: 'back_image', maxCount: 1 },
+    { name: 'selfie_image', maxCount: 1 }
+]), async (req, res) => {
+    const { 
+        document_type, document_number, issued_date, issued_district,
+        gender, father_name, grandfather_name, occupation, marital_status,
+        permanent_address, current_address
+    } = req.body;
+
+    const isCitizenship = document_type === 'Citizenship ID' || document_type === 'Citizenship';
+
+    if (!document_type || !document_number || !req.files || !req.files['front_image'] || !req.files['selfie_image']) {
+        return res.status(400).json({ error: 'Missing required fields or images' });
+    }
+
+    if (isCitizenship && !req.files['back_image']) {
+        return res.status(400).json({ error: 'Back image is required for Citizenship ID' });
+    }
+
+    try {
+        const frontImagePath = `/uploads/kyc/${req.files['front_image'][0].filename}`;
+        const backImagePath = req.files['back_image'] ? `/uploads/kyc/${req.files['back_image'][0].filename}` : null;
+        const selfieImagePath = `/uploads/kyc/${req.files['selfie_image'][0].filename}`;
+
+        // Save to user_kyc table
+        await pool.query(
+            `INSERT INTO user_kyc (
+                user_id, document_type, document_number, issued_date, issued_district,
+                gender, father_name, grandfather_name, occupation, marital_status,
+                permanent_address, current_address,
+                front_image, back_image, selfie_image, updated_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, CURRENT_TIMESTAMP)
+            ON CONFLICT (user_id) DO UPDATE SET
+                document_type = EXCLUDED.document_type,
+                document_number = EXCLUDED.document_number,
+                issued_date = EXCLUDED.issued_date,
+                issued_district = EXCLUDED.issued_district,
+                gender = EXCLUDED.gender,
+                father_name = EXCLUDED.father_name,
+                grandfather_name = EXCLUDED.grandfather_name,
+                occupation = EXCLUDED.occupation,
+                marital_status = EXCLUDED.marital_status,
+                permanent_address = EXCLUDED.permanent_address,
+                current_address = EXCLUDED.current_address,
+                front_image = EXCLUDED.front_image,
+                back_image = EXCLUDED.back_image,
+                selfie_image = EXCLUDED.selfie_image,
+                updated_at = CURRENT_TIMESTAMP`,
+            [
+                req.userId, document_type, document_number, issued_date || null, issued_district || null,
+                gender || null, father_name || null, grandfather_name || null, occupation || null, marital_status || null,
+                permanent_address || null, current_address || null,
+                frontImagePath, backImagePath, selfieImagePath
+            ]
+        );
+
+        // Update verification status to pending in admin_user_reviews
+        await pool.query(
+            `INSERT INTO admin_user_reviews (user_id, status, reviewed_at)
+             VALUES ($1, 'pending', NULL)
+             ON CONFLICT (user_id) DO UPDATE SET
+                status = 'pending',
+                reviewed_at = NULL,
+                reviewed_by = NULL,
+                review_note = NULL`,
+            [req.userId]
+        );
+
+        res.json({ message: 'KYC documents submitted successfully' });
+    } catch (err) {
+        console.error('KYC submission error:', err);
+        res.status(500).json({ error: 'Failed to submit KYC' });
+    }
+});
+
+// GET /api/profile/kyc - Get current user's KYC details
+router.get('/profile/kyc', verifyToken, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT k.*, r.status as verification_status, r.review_note
+             FROM user_kyc k
+             LEFT JOIN admin_user_reviews r ON r.user_id = k.user_id
+             WHERE k.user_id = $1`,
+            [req.userId]
+        );
+
+        if (!result.rows[0]) {
+            return res.status(404).json({ error: 'KYC not found' });
+        }
+
+        res.json({ kyc: result.rows[0] });
+    } catch (err) {
+        console.error('Get KYC error:', err);
+        res.status(500).json({ error: 'Failed to fetch KYC' });
+    }
+});
+
 // PUT /api/profile - Update current user's profile
 router.put('/profile', verifyToken, async (req, res) => {
     const { name, phone, address, city, state, country, blood_type, age, medical_history, donation_type, donation_organ } = req.body;

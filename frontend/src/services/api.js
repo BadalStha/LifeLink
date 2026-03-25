@@ -118,6 +118,23 @@ export const authAPI = {
     });
     return handleResponse(response);
   },
+  
+  uploadKyc: async (formData) => {
+    const token = getAuthToken();
+    const response = await fetch(`${API_BASE_URL}/api/profile/kyc`, {
+      method: 'POST',
+      headers: {
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+    return handleResponse(response);
+  },
+
+  getKycStatus: async () => {
+    const response = await authFetch(`${API_BASE_URL}/api/profile/kyc`);
+    return handleResponse(response);
+  },
 };
 
 // Donation Requests APIs

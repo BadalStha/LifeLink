@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  ArrowLeft, Send, Search, MessageCircle, Loader2,
-  User, CheckCheck, Clock, ArrowRight, BadgeCheck, Droplets
-} from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useChatContext } from '../context/ChatContext';
 import { messagesAPI, usersAPI, API_BASE_URL } from '../services/api';
+import {
+  X, Maximize2, Minimize2, ArrowLeft, Send, Search, MessageCircle, Loader2,
+  BadgeCheck, Droplets
+} from 'lucide-react';
 
 function formatTime(dateStr) {
   if (!dateStr) return '';
@@ -100,13 +101,13 @@ function MessageBubble({ msg, myId }) {
   );
 }
 
-export default function Chat() {
+export default function GlobalChat() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { user } = useAuth();
+  const { isOpen, activeUserId, openChat, closeChat, setActiveUserId } = useChatContext();
 
   const [conversations, setConversations] = useState([]);
-  const [activeConvId, setActiveConvId] = useState(searchParams.get('to') || null);
   const [activeConvName, setActiveConvName] = useState('');
   const [activeConvPic, setActiveConvPic] = useState(null);
   const [activeConvVerified, setActiveConvVerified] = useState(false);
@@ -125,30 +126,52 @@ export default function Chat() {
   const myId = user?.id;
 
   useEffect(() => {
-    if (!localStorage.getItem('authToken')) {
-      navigate('/login');
-      return;
+    if (isOpen) {
+      loadConversations();
     }
-    loadConversations();
-  }, []);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (activeConvId) {
-      loadMessages(activeConvId);
-      pollRef.current = setInterval(() => loadMessages(activeConvId, false), 5000);
+    if (activeUserId) {
+      loadMessages(activeUserId);
+      pollRef.current = setInterval(() => loadMessages(activeUserId, false), 5000);
     }
     return () => clearInterval(pollRef.current);
-  }, [activeConvId]);
+  }, [activeUserId]);
 
   useEffect(() => {
-    if (activeConvId && !activeConvName) {
-      resolveConversationName(activeConvId);
+    if (activeUserId && !activeConvName) {
+      resolveConversationName(activeUserId);
     }
-  }, [activeConvId, activeConvName]);
+  }, [activeUserId, activeConvName]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Don't render on the full chat page itself
+  if (location.pathname === '/chat') return null;
+
+  // Don't render bubble/window unless user is authenticated
+  if (!localStorage.getItem('authToken')) return null;
+
+  // Render floating bubble if chat is closed
+  if (!isOpen) {
+    return (
+      <button
+        onClick={() => openChat(null)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl hover:bg-red-700 hover:scale-110 transition-all z-[90] flex items-center justify-center group"
+        title="Open Messages"
+      >
+        <MessageCircle size={28} className="group-hover:rotate-12 transition-transform" />
+        {conversations.some(c => Number(c.unread_count) > 0) && (
+          <span className="absolute -top-1 -right-1 w-6 h-6 bg-blue-600 border-2 border-white rounded-full flex items-center justify-center text-[10px] font-black">
+             {conversations.reduce((sum, c) => sum + Number(c.unread_count), 0)}
+          </span>
+        )}
+      </button>
+    );
+  }
 
   const loadConversations = async () => {
     setIsLoadingConvs(true);
@@ -156,15 +179,13 @@ export default function Chat() {
       const data = await messagesAPI.getConversations();
       setConversations(data.conversations || []);
 
-      // If a target user was passed via ?to=id, set their name from conversations
-      const toId = searchParams.get('to');
-      if (toId) {
-        const found = data.conversations?.find(c => String(c.partner_id) === toId);
+      if (activeUserId) {
+        const found = data.conversations?.find(c => String(c.partner_id) === String(activeUserId));
         if (found?.partner_name) {
           setActiveConvName(found.partner_name);
           setActiveConvPic(found.partner_profile_picture || null);
         } else {
-          resolveConversationName(toId);
+          resolveConversationName(activeUserId);
         }
       }
     } catch (err) {
@@ -201,7 +222,7 @@ export default function Chat() {
   };
 
   const openConversation = (conv) => {
-    setActiveConvId(String(conv.partner_id));
+    setActiveUserId(String(conv.partner_id));
     setActiveConvName(conv.partner_name || '');
     setActiveConvPic(conv.partner_profile_picture || null);
     setActiveConvVerified(false);
@@ -214,16 +235,16 @@ export default function Chat() {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !activeConvId) return;
+    if (!newMessage.trim() || !activeUserId) return;
 
     const content = newMessage.trim();
     setNewMessage('');
     setIsSending(true);
 
     try {
-      const data = await messagesAPI.sendMessage(Number(activeConvId), content);
+      const data = await messagesAPI.sendMessage(Number(activeUserId), content);
       setMessages(prev => [...prev, data.message]);
-      loadConversations(); // refresh conversation list
+      loadConversations();
     } catch (err) {
       setError(err.message || 'Message failed to send');
       setNewMessage(content);
@@ -243,7 +264,7 @@ export default function Chat() {
   };
 
   const startConversation = (u) => {
-    setActiveConvId(String(u.id));
+    setActiveUserId(String(u.id));
     setActiveConvName(u.name || 'User');
     setActiveConvPic(u.profile_picture || null);
     setActiveConvVerified(u.verification_status === 'approved');
@@ -263,34 +284,50 @@ export default function Chat() {
     }
   };
 
-  return (
-    <div className="h-screen flex flex-col bg-slate-50 font-sans">
-      {/* Navbar */}
-      <nav className="bg-white border-b border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between shrink-0 z-40 relative">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/')} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-all">
-            <ArrowLeft size={18}/>
-          </button>
-          <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-7 h-7 bg-red-600 rounded-md flex items-center justify-center">
-              <Droplets size={14} className="text-white"/>
-            </div>
-            <span className="font-black text-slate-900 hidden sm:block">LifeLink</span>
-          </div>
-          <span className="text-slate-300 mx-1">|</span>
-          <span className="font-bold text-slate-700 text-sm">Messages</span>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={() => navigate('/profile')} className="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg text-sm hover:bg-black transition-all">
-            My Profile
-          </button>
-        </div>
-      </nav>
+  const handleBackToList = () => {
+    setActiveUserId(null);
+  };
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel: Conversations */}
-        <div className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0" style={{ display: activeConvId ? 'none' : 'flex' }} id="conv-panel">
-          <style>{`@media(min-width:768px){#conv-panel{display:flex!important}}`}</style>
+  const popupClasses = 'fixed bottom-4 right-4 w-[380px] h-[600px] max-h-[calc(100vh-120px)] z-[40] bg-white rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] flex flex-col overflow-hidden border border-slate-200 transition-all duration-300';
+
+  const handleMaximize = () => {
+    const targetUrl = activeUserId ? `/chat?to=${activeUserId}` : '/chat';
+    navigate(targetUrl);
+    closeChat();
+  };
+
+  return (
+    <div className={popupClasses}>
+      {/* Header */}
+      <div className="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shrink-0">
+        <div className="flex flex-row items-center gap-2">
+          {activeUserId && (
+             <button onClick={handleBackToList} className="mr-1 hover:text-red-400 transition-colors">
+               <ArrowLeft size={18} />
+             </button>
+          )}
+          <div className="w-6 h-6 bg-red-600 rounded flex items-center justify-center">
+            <Droplets size={12} className="text-white" />
+          </div>
+          <span className="font-bold text-sm">LifeLink Messages</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={handleMaximize} className="hover:text-slate-300 transition-colors" title="Maximize to full screen">
+            <Maximize2 size={16} />
+          </button>
+          <button onClick={closeChat} className="hover:text-red-400 transition-colors ml-1" title="Close">
+            <X size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-1 overflow-hidden h-full">
+        <div 
+          className={`flex flex-col bg-white border-r border-slate-200 shrink-0 ${
+            activeUserId ? 'hidden' : 'w-full'
+          }`}
+        >
+          {/* Search New User */}
 
           {/* Search New User */}
           <div className="p-4 border-b border-slate-100">
@@ -299,12 +336,12 @@ export default function Chat() {
               <input
                 value={searchUser}
                 onChange={(e) => { setSearchUser(e.target.value); searchUsers(e.target.value); }}
-                placeholder="Search users to message..."
-                className="w-full pl-9 pr-4 py-2.5 bg-slate-100 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Search users..."
+                className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500"
               />
             </div>
             {searchResults.length > 0 && (
-              <div className="mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+              <div className="mt-2 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden absolute z-10 w-[calc(100%-2rem)] left-4">
                 {searchResults.map(u => (
                   <button
                     key={u.id}
@@ -323,23 +360,23 @@ export default function Chat() {
           </div>
 
           {/* Conversation List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-1">
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
             {isLoadingConvs ? (
               <div className="flex justify-center items-center py-10">
                 <Loader2 className="animate-spin text-slate-400" size={24} />
               </div>
             ) : conversations.length === 0 ? (
-              <div className="text-center py-14 px-4">
-                <MessageCircle className="mx-auto text-slate-300 mb-3" size={40} />
-                <p className="font-bold text-slate-500">No conversations yet</p>
-                <p className="text-slate-400 text-sm mt-1">Search for a user above to start messaging</p>
+              <div className="text-center py-10 px-4">
+                <MessageCircle className="mx-auto text-slate-300 mb-2" size={32} />
+                <p className="font-bold text-slate-500 text-sm">No conversations</p>
+                <p className="text-slate-400 text-xs mt-1">Search above to start messaging</p>
               </div>
             ) : (
               conversations.map(conv => (
                 <ConversationItem
                   key={conv.partner_id}
                   conv={conv}
-                  isActive={String(conv.partner_id) === activeConvId}
+                  isActive={String(conv.partner_id) === activeUserId}
                   onClick={() => openConversation(conv)}
                 />
               ))
@@ -348,37 +385,33 @@ export default function Chat() {
         </div>
 
         {/* Right Panel: Messages */}
-        {activeConvId ? (
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Chat Header */}
-            <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center gap-4">
-              <button
-                onClick={() => setActiveConvId(null)}
-                className="md:hidden text-slate-500 hover:text-red-600"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <Avatar name={activeConvName} picPath={activeConvPic} size={10} textSize="text-sm" />
-              <div>
-                <div className="flex items-center gap-1">
-                  <p className="font-black text-slate-800">{activeConvName || 'User'}</p>
-                  {activeConvVerified && <BadgeCheck size={16} className="text-blue-500 shrink-0" />}
+        {activeUserId && (
+          <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 flex">
+            {/* Extended Chat Header */}
+            <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm z-10">
+              <div className="flex items-center gap-3">
+                <Avatar name={activeConvName} picPath={activeConvPic} size={9} textSize="text-xs" />
+                <div>
+                  <div className="flex items-center gap-1">
+                    <p className="font-bold text-sm text-slate-800">{activeConvName || 'User'}</p>
+                    {activeConvVerified && <BadgeCheck size={14} className="text-blue-500 shrink-0" />}
+                  </div>
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Donor Member</p>
                 </div>
-                <p className="text-xs text-slate-500">Donor — LifeLink Member</p>
               </div>
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 relative">
               {isLoadingMsgs ? (
                 <div className="flex justify-center items-center h-full">
-                  <Loader2 className="animate-spin text-slate-400" size={30} />
+                  <Loader2 className="animate-spin text-slate-400" size={24} />
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <MessageCircle className="text-slate-300 mb-3" size={48} />
-                  <p className="font-bold text-slate-500">Start the conversation</p>
-                  <p className="text-slate-400 text-sm mt-1">
+                  <MessageCircle className="text-slate-300 mb-2" size={40} />
+                  <p className="font-bold text-slate-500 text-sm">Start the conversation</p>
+                  <p className="text-slate-400 text-xs mt-1 max-w-[200px]">
                     Introduce yourself and explain your medical need clearly.
                   </p>
                 </div>
@@ -392,34 +425,28 @@ export default function Chat() {
 
             {/* Error */}
             {error && (
-              <div className="px-4 py-2 bg-red-50 text-red-600 text-sm font-semibold border-t border-red-200">
+              <div className="px-3 py-1.5 bg-red-50 text-red-600 text-xs font-semibold border-t border-red-200">
                 {error}
               </div>
             )}
 
             {/* Message Input */}
-            <form onSubmit={sendMessage} className="bg-white border-t border-slate-200 px-4 py-4 flex gap-3">
+            <form onSubmit={sendMessage} className="bg-white border-t border-slate-200 px-3 py-3 flex gap-2">
               <input
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type your message..."
-                className="flex-1 px-5 py-3 bg-slate-100 rounded-2xl text-slate-800 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                placeholder="Type a message..."
+                className="flex-1 px-4 py-2 bg-slate-100 rounded-xl text-slate-800 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
                 disabled={isSending}
               />
               <button
                 type="submit"
                 disabled={isSending || !newMessage.trim()}
-                className="px-5 py-3 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 disabled:opacity-50 transition-all shrink-0"
+                className="px-4 py-2 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 disabled:opacity-50 transition-all shrink-0 flex items-center justify-center"
               >
-                <Send size={18} />
+                <Send size={16} />
               </button>
             </form>
-          </div>
-        ) : (
-          <div className="flex-1 hidden md:flex flex-col items-center justify-center text-center p-8">
-            <MessageCircle className="text-slate-300 mb-4" size={64} />
-            <h3 className="text-xl font-black text-slate-600 mb-2">Select a conversation</h3>
-            <p className="text-slate-400">Choose from the left panel or search for a user to message</p>
           </div>
         )}
       </div>

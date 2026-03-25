@@ -21,13 +21,17 @@ import {
   Droplets,
   MapPin,
   ChevronRight,
+  Mail,
+  Phone,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useChatContext } from '../context/ChatContext';
 import { dashboardAPI, notificationsAPI, announcementsAPI } from '../services/api';
 
 export default function Home() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { openChat } = useChatContext();
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   const [language, setLanguage] = useState('en');
   const [stats, setStats] = useState(null);
@@ -158,7 +162,7 @@ export default function Home() {
       updated.add(item.id);
       setReadMessageIds(updated);
       localStorage.setItem('ll_read_msg_notifs', JSON.stringify([...updated]));
-      navigate(`/chat?to=${item.reference_id}`);
+      openChat(String(item.reference_id));
       return;
     }
     if (item.type === 'request' && item.reference_id) {
@@ -227,10 +231,14 @@ export default function Home() {
       step: 'Step',
       english: 'EN',
       nepali: 'नेपाली',
-      footerTagline: 'Connecting donors and recipients across Nepal.',
+      footerTagline: 'Connecting donors and recipients across Nepal. Join our trusted community to save lives, coordinate emergency blood and organ matching, and make a lasting impact.',
       footerLinks: 'Quick Links',
       footerContact: 'Support',
       copyright: '© 2025 LifeLink Nepal. Saving lives together.',
+      authenticatedTitle: 'Manage Your Help Requests',
+      authenticatedDesc: 'You can submit a new emergency request or view the status of your existing ones in your profile.',
+      viewMyRequests: 'View My Requests',
+      submitNewRequest: 'Submit New Request',
     },
     np: {
       topBar: 'नेपाल आपतकालीन स्वास्थ्य सहयोग सञ्जाल | २४/७ समन्वित दाता मिलान',
@@ -290,10 +298,14 @@ export default function Home() {
       step: 'चरण',
       english: 'EN',
       nepali: 'नेपाली',
-      footerTagline: 'नेपालभर दाता र प्राप्तकर्तालाई जोड्दै।',
+      footerTagline: 'नेपालभर दाता र प्राप्तकर्तालाई जोड्दै। जीवन बचाउन, आपतकालीन रगत र अंग मिलान समन्वय गर्न, र दिगो प्रभाव पार्न हाम्रो विश्वसनीय समुदायमा सामेल हुनुहोस्।',
       footerLinks: 'द्रुत लिंकहरू',
       footerContact: 'सहयोग',
       copyright: '© २०२५ LifeLink Nepal. सँगै जीवन बचाउँदै।',
+      authenticatedTitle: 'सहयोग अनुरोध व्यवस्थापन गर्नुहोस्',
+      authenticatedDesc: 'तपाईं नयाँ आपतकालीन अनुरोध पठाउन सक्नुहुन्छ वा आफ्नो प्रोफाइलमा पुराना अनुरोधहरूको अवस्था हेर्न सक्नुहुन्छ।',
+      viewMyRequests: 'मेरो अनुरोधहरू हेर्नुहोस्',
+      submitNewRequest: 'नयाँ अनुरोध पठाउनुहोस्',
     },
   };
 
@@ -397,7 +409,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
-              <button onClick={() => navigate('/chat')} className="p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600">
+              <button onClick={() => openChat(null)} className="p-2 rounded-lg hover:bg-slate-50 transition-all text-slate-600">
                 <MessageCircle size={18}/>
               </button>
               <button
@@ -742,7 +754,7 @@ export default function Home() {
       {/* ==================== FOOTER ==================== */}
       <footer className="bg-slate-900 text-slate-400 py-12 px-5 md:px-12">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 pb-8 border-b border-slate-800">
+          <div className="grid md:grid-cols-4 gap-8 pb-8 border-b border-slate-800">
             <div>
               <div className="flex items-center gap-2.5 mb-3">
                 <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
@@ -781,6 +793,14 @@ export default function Home() {
                 <p className="flex items-center gap-2"><MapPin size={13} className="text-red-400"/> All 77 districts of Nepal</p>
               </div>
             </div>
+            <div>
+              <p className="text-white font-bold text-sm mb-3">Contact Us</p>
+              <div className="space-y-3 text-sm">
+                <a href="tel:+97714222222" className="flex items-center gap-2 hover:text-white transition-colors"><Phone size={13} className="text-emerald-400"/> +977 1-4222222</a>
+                <a href="https://wa.me/9779841234567" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-white transition-colors"><MessageCircle size={13} className="text-green-500"/> +977 9841234567</a>
+                <a href="mailto:lifelink.nepal@gmail.com" className="flex items-center gap-2 hover:text-white transition-colors"><Mail size={13} className="text-blue-400"/> lifelink.nepal@gmail.com</a>
+              </div>
+            </div>
           </div>
 
           <div className="pt-6 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-slate-500">
@@ -800,16 +820,35 @@ export default function Home() {
             <div className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mb-5">
               <AlertTriangle size={28}/>
             </div>
-            <h3 className="text-2xl font-black text-slate-900 mb-2">{t.requestHelpModal}</h3>
+            <h3 className="text-2xl font-black text-slate-900 mb-2">
+              {isAuthenticated ? t.authenticatedTitle : t.requestHelpModal}
+            </h3>
             <p className="text-slate-500 text-sm mb-6 leading-relaxed">
-              {t.requestHelpDesc}
+              {isAuthenticated ? t.authenticatedDesc : t.requestHelpDesc}
             </p>
-            <button
-              onClick={() => { setShowEmergencyModal(false); navigate('/register'); }}
-              className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
-            >
-              <HandHeart size={18}/> {t.registerAndHelp}
-            </button>
+            {isAuthenticated ? (
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => { setShowEmergencyModal(false); navigate('/request-help'); }}
+                  className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
+                >
+                  <HandHeart size={18}/> {t.submitNewRequest}
+                </button>
+                <button
+                  onClick={() => { setShowEmergencyModal(false); navigate('/profile?tab=requests'); }}
+                  className="w-full bg-slate-100 text-slate-700 p-4 rounded-2xl font-black text-base hover:bg-slate-200 transition-all flex items-center justify-center gap-2.5"
+                >
+                  <AlertTriangle size={18}/> {t.viewMyRequests}
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => { setShowEmergencyModal(false); navigate('/register'); }}
+                className="w-full bg-red-600 text-white p-4 rounded-2xl font-black text-base hover:bg-red-700 transition-all flex items-center justify-center gap-2.5"
+              >
+                <HandHeart size={18}/> {t.registerAndHelp}
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 
@@ -19,17 +19,27 @@ import NotFound from './views/NotFound';
 import About from './views/About';
 import FindDonors from './views/FindDonors';
 import DonorProfile from './views/DonorProfile';
-import Chat from './views/Chat';
 import DonationPreferences from './views/DonationPreferences';
 import ForgotPassword from './views/ForgotPassword';
 import ResetPassword from './views/ResetPassword';
 import HelpRequestDetail from './views/HelpRequestDetail';
 import ChatbotWidget from './Components/ChatbotWidget';
+import { ChatProvider } from './context/ChatContext';
+import GlobalChat from './components/GlobalChat';
+import ChatView from './views/ChatView';
 
 export default function App() {
   return (
-    <>
+    <ChatProvider>
       <Routes>
+        <Route 
+          path="/chat" 
+          element={
+            <ProtectedRoute>
+              <ChatView />
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Auth />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -51,14 +61,6 @@ export default function App() {
           path="/donor/:id" 
           element={
               <DonorProfile />
-          } 
-        />
-        <Route 
-          path="/chat" 
-          element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
           } 
         />
         <Route 
@@ -99,6 +101,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <ChatbotWidget />
-    </>
+      <GlobalChat />
+    </ChatProvider>
   );
 }
