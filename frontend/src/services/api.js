@@ -93,30 +93,18 @@ export const authAPI = {
   },
 
   requestResetCode: async (name, email) => {
-    const response = await fetch(`${API_BASE_URL}/api/forgot-password/request-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email }),
-    });
-    return handleResponse(response);
+    // REMOVED: Forgot password feature has been disabled
+    throw new Error('Password reset feature is disabled');
   },
 
   verifyResetCode: async (email, code) => {
-    const response = await fetch(`${API_BASE_URL}/api/forgot-password/verify-code`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code }),
-    });
-    return handleResponse(response);
+    // REMOVED: Forgot password feature has been disabled
+    throw new Error('Password reset feature is disabled');
   },
 
   resetPassword: async (reset_token, new_password) => {
-    const response = await fetch(`${API_BASE_URL}/api/forgot-password/reset`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reset_token, new_password }),
-    });
-    return handleResponse(response);
+    // REMOVED: Forgot password feature has been disabled
+    throw new Error('Password reset feature is disabled');
   },
   
   uploadKyc: async (formData) => {
@@ -218,6 +206,18 @@ export const messagesAPI = {
 export const announcementsAPI = {
   getPublished: async (limit = 10) => {
     const response = await fetch(`${API_BASE_URL}/api/announcements?limit=${limit}`);
+    return handleResponse(response);
+  },
+};
+
+// Campaigns API (public)
+export const campaignsAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/campaigns`);
+    return handleResponse(response);
+  },
+  getById: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/api/campaigns/${id}`);
     return handleResponse(response);
   },
 };
@@ -515,4 +515,5 @@ export default {
   donors: donorsAPI,
   admin: adminAPI,
   hospital: hospitalAPI,
+  campaigns: campaignsAPI,
 };

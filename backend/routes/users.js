@@ -1,8 +1,8 @@
 import express from 'express';
 import pool from '../db.js';
-import { verifyToken } from '../middleware/auth.js';
+import { verifyToken, JWT_SECRET } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -358,12 +358,12 @@ router.get('/search', async (req, res) => {
 
     // Extract userId from token if provided (to exclude current user from results)
     let currentUserId = null;
-    const authHeader = req.headers.authorization;
+    const authHeader = req.headers.authorization || req.headers['authorization'];
     if (authHeader) {
         try {
-            const token = authHeader.split(' ')[1];
+            const token = authHeader.split(' ')[1] || authHeader;
             if (token) {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key_change_this');
+                const decoded = jwt.verify(token, JWT_SECRET);
                 currentUserId = decoded.userId;
             }
         } catch (err) {
@@ -382,7 +382,7 @@ router.get('/search', async (req, res) => {
 
         // Exclude current user from search results
         if (currentUserId) {
-            query += ` AND id != $${paramCount}`;
+            query += ` AND u.id != $${paramCount}`;
             params.push(currentUserId);
             paramCount++;
         }
@@ -619,6 +619,31 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
              LIMIT $1`,
             [parsedLimit]
         );
+ 
+        const campaignAlertsResult = await pool.query(
+            `SELECT a.id, a.message, a.urgency, a.created_at, a.related_campaign_id, c.title as campaign_title
+             FROM alerts a
+             JOIN campaigns c ON c.id = a.related_campaign_id
+             WHERE a.related_campaign_id IS NOT NULL
+             ORDER BY a.created_at DESC
+             LIMIT $1`,
+            [parsedLimit]
+        );
+
+        const publishedAnnouncementsResult = await pool.query(
+            `SELECT
+                a.id,
+                a.title,
+                a.content,
+                a.created_at,
+                u.name AS author_name
+             FROM announcements a
+             LEFT JOIN users u ON u.id = a.created_by
+             WHERE a.is_published = true
+             ORDER BY a.created_at DESC
+             LIMIT $1`,
+            [parsedLimit]
+        );
 
         const requestAlertsResult = await pool.query(
             `SELECT
@@ -700,6 +725,28 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
                 reference_id: row.id
             };
         });
+ 
+        const campaignNotifications = campaignAlertsResult.rows.map((row) => ({
+            id: `campaign-${row.id}`,
+            type: 'campaign',
+            title: row.campaign_title || 'New Donation Campaign',
+            body: row.message,
+            created_at: row.created_at,
+            is_unread: true,
+            urgency: row.urgency,
+            reference_id: row.related_campaign_id
+        }));
+
+        const announcementNotifications = publishedAnnouncementsResult.rows.map((row) => ({
+            id: `announcement-${row.id}`,
+            type: 'announcement',
+            title: row.title || 'LifeLink Announcement',
+            body: row.content,
+            created_at: row.created_at,
+            is_unread: true,
+            reference_id: row.id,
+            author_name: row.author_name || 'LifeLink Team'
+        }));
 
         const requestNotifications = myRequestsResult.rows.map((row) => {
             const requestLabel = row.request_type === 'blood'
@@ -764,9 +811,11 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
         const notifications = [
             ...messageNotifications,
             ...broadcastNotifications,
+            ...announcementNotifications,
             ...alertNotifications,
             ...requestNotifications,
-            ...mergedCommunityRequestNotifications
+            ...mergedCommunityRequestNotifications,
+            ...campaignNotifications
         ]
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
             .slice(0, parsedLimit);
@@ -778,7 +827,7 @@ router.get('/user/notifications', verifyToken, async (req, res) => {
             unread_count,
             counts: {
                 messages: messageNotifications.filter((item) => item.is_unread).length,
-                alerts: alertNotifications.length + broadcastNotifications.length,
+                alerts: alertNotifications.length + broadcastNotifications.length + announcementNotifications.length,
                 requests: requestNotifications.length + mergedCommunityRequestNotifications.length
             }
         });

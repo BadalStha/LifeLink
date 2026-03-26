@@ -25,9 +25,9 @@ const districtMunicipalityData = {
 };
 
 const inputClass =
-  'w-full px-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:border-red-400 focus:ring-4 focus:ring-red-50 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal shadow-sm';
+  'w-full px-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:border-red-400 focus:ring-4 focus:ring-red-50 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal shadow-sm autofill:!text-slate-800 autofill:shadow-[inset_0_0_0px_1000px_#ffffff]';
 const iconInputClass =
-  'w-full pl-11 pr-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:border-red-400 focus:ring-4 focus:ring-red-50 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal shadow-sm';
+  'w-full pl-11 pr-4 py-3.5 bg-white rounded-2xl border border-slate-200 focus:border-red-400 focus:ring-4 focus:ring-red-50 transition-all outline-none font-semibold text-slate-800 placeholder:text-slate-400 placeholder:font-normal shadow-sm autofill:!text-slate-800 autofill:shadow-[inset_0_0_0px_1000px_#ffffff]';
 const labelClass = 'block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5';
 
 export default function Register() {

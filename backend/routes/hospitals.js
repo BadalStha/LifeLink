@@ -138,13 +138,34 @@ router.post('/hospital/campaigns', verifyToken, async (req, res) => {
       ]
     );
 
-    res.status(201).json({ campaign: result.rows[0] });
+    const campaign = result.rows[0];
+
+    // Create notification for all users
+    try {
+      const hospitalResult = await pool.query(
+        'SELECT name FROM users WHERE id = $1',
+        [req.userId]
+      );
+      const hospitalName = hospitalResult.rows[0]?.name || 'A hospital';
+
+      await pool.query(
+        `INSERT INTO alerts
+         (created_by, alert_type, message, urgency, target_audience, blood_type_target, related_campaign_id)
+         VALUES ($1, 'system_alert', $2, 'medium', 'all_users', $3, $4)`,
+        [
+          req.userId,
+          `${hospitalName} has launched a new campaign: ${title}`,
+          blood_type === 'All Types' ? null : (blood_type || null),
+          campaign.id
+        ]
+      );
+    } catch (alertErr) {
+      console.error('Create campaign alert error:', alertErr);
+    }
+
+    res.status(201).json({ campaign });
   } catch (err) {
     console.error('Create campaign error:', err);
-    // Table might not exist yet, handle gracefully
-    if (err.message.includes('campaigns')) {
-      return res.status(501).json({ error: 'Campaigns feature not yet available' });
-    }
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -164,10 +185,6 @@ router.get('/hospital/campaigns', verifyToken, async (req, res) => {
     res.json({ campaigns: result.rows });
   } catch (err) {
     console.error('Get campaigns error:', err);
-    // Table might not exist yet
-    if (err.message.includes('campaigns')) {
-      return res.json({ campaigns: [] });
-    }
     res.status(500).json({ error: 'Server error' });
   }
 });

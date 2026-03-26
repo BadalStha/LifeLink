@@ -270,7 +270,7 @@ export default function Admin() {
   const [selectedUserProfile, setSelectedUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
-  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', expires_at: '', channels: ['notification', 'email'] });
+  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', expires_at: '', channels: ['notification'] });
   const [broadcastPreview, setBroadcastPreview] = useState(false);
   const [broadcastStatus, setBroadcastStatus] = useState(null); // { type: 'success'|'error', text: '' }
 
@@ -411,7 +411,7 @@ export default function Admin() {
     const channelLabels = { notification: 'notification', announcement: 'homepage announcement', email: 'email' };
     try {
       await adminAPI.sendBroadcast(broadcastForm);
-      setBroadcastForm({ title: '', message: '', expires_at: '', channels: ['notification', 'email'] });
+      setBroadcastForm({ title: '', message: '', expires_at: '', channels: ['notification'] });
       setBroadcastPreview(false);
       const sent = channels.map((c) => channelLabels[c] || c).join(', ');
       setBroadcastStatus({ type: 'success', text: `Broadcast sent via: ${sent}.` });
@@ -598,8 +598,9 @@ export default function Admin() {
                 <div className="flex justify-between items-start gap-3">
                   <div>
                     <p className="font-semibold text-slate-900 capitalize">{r.request_type} {r.blood_type || r.organ_type || ''}</p>
-                    <p className="text-xs text-slate-400 mt-1">Requester: {r.requester_name || r.requester_email || '-'}</p>
-                    <p className="text-xs text-slate-400">Location: {r.location || '-'}</p>
+                    <p className="text-xs text-slate-400 mt-1">Patient: <span className="font-semibold text-slate-700">{r.patient_name || r.requester_name || '-'}</span></p>
+                    <p className="text-[10px] text-slate-400">Requester: {r.requester_name || r.requester_email || '-'}</p>
+                    <p className="text-[10px] text-slate-400">Location: {r.location || '-'}</p>
                   </div>
                   <Badge variant={r.urgency === 'critical' || r.urgency === 'high' ? 'red' : 'amber'}>{r.urgency}</Badge>
                 </div>
@@ -779,7 +780,6 @@ export default function Admin() {
                   {[
                     { key: 'notification', label: 'Notification', desc: 'In-app alert for all users' },
                     { key: 'announcement', label: 'Announcement', desc: 'Shown on the homepage' },
-                    { key: 'email', label: 'Email', desc: 'Sent to all active users' },
                   ].map(({ key, label, desc }) => (
                     <label key={key} className="flex items-start gap-2.5 cursor-pointer select-none group">
                       <input

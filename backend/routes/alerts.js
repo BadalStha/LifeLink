@@ -13,7 +13,8 @@ router.post('/alerts', verifyToken, async (req, res) => {
         target_audience,
         blood_type_target,
         organ_type_target,
-        related_request_id
+        related_request_id,
+        related_campaign_id
     } = req.body;
 
     if (req.role !== 'admin' && req.role !== 'hospital') {
@@ -37,8 +38,8 @@ router.post('/alerts', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
             `INSERT INTO alerts
-             (created_by, alert_type, message, urgency, target_audience, blood_type_target, organ_type_target, related_request_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             (created_by, alert_type, message, urgency, target_audience, blood_type_target, organ_type_target, related_request_id, related_campaign_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
              RETURNING *`,
             [
                 req.userId,
@@ -48,7 +49,8 @@ router.post('/alerts', verifyToken, async (req, res) => {
                 target_audience || 'all_users',
                 blood_type_target || null,
                 organ_type_target || null,
-                related_request_id || null
+                related_request_id || null,
+                related_campaign_id || null
             ]
         );
 

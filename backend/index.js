@@ -1,3 +1,4 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
@@ -6,6 +7,8 @@ import nodemailer from 'nodemailer';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './db.js';
+
+dotenv.config();
 import { verifyToken, JWT_SECRET } from './middleware/auth.js';
 import errorHandler from './middleware/errorHandler.js';
 
@@ -22,7 +25,9 @@ import announcementsRouter from './routes/announcements.js';
 import chatRouter from './routes/chat.js';
 import hospitalsRouter from './routes/hospitals.js';
 import chatbotRouter from './routes/chatbot.js';
+import campaignsRouter from './routes/campaigns.js';
 
+console.log('Backend index.js loading...');
 const app = express();
 
 (async () => {
@@ -59,6 +64,7 @@ const ensureAdminUser = async () => {
 };
 
 const ensureSchema = async () => {
+    console.log('Ensuring database schema...');
     // Create all tables if they don't exist yet (safe on every boot)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -123,11 +129,31 @@ const ensureSchema = async () => {
             urgency VARCHAR(20) DEFAULT 'medium',
             reason TEXT,
             location VARCHAR(255),
+            patient_name VARCHAR(255),
+            patient_email VARCHAR(255),
+            patient_phone VARCHAR(20),
             status VARCHAR(50) DEFAULT 'open',
             fulfillment_date DATE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(requester_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    `);
+
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS campaigns (
+            id SERIAL PRIMARY KEY,
+            hospital_id INT NOT NULL,
+            title VARCHAR(255) NOT NULL,
+            description TEXT NOT NULL,
+            blood_type VARCHAR(10),
+            target_units INT,
+            start_date DATE,
+            end_date DATE,
+            status VARCHAR(50) DEFAULT 'active',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(hospital_id) REFERENCES users(id) ON DELETE CASCADE
         )
     `);
 
@@ -143,9 +169,11 @@ const ensureSchema = async () => {
             organ_type_target VARCHAR(50),
             is_read BOOLEAN DEFAULT false,
             related_request_id INT,
+            related_campaign_id INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
-            FOREIGN KEY(related_request_id) REFERENCES donation_requests(id) ON DELETE SET NULL
+            FOREIGN KEY(related_request_id) REFERENCES donation_requests(id) ON DELETE SET NULL,
+            FOREIGN KEY(related_campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL
         )
     `);
 
@@ -218,11 +246,15 @@ const ensureSchema = async () => {
     `).catch(() => {});
 
     // Ensure newer schema columns exist
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS patient_name VARCHAR(255)`).catch(() => {});
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS patient_email VARCHAR(255)`).catch(() => {});
+    await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS patient_phone VARCHAR(20)`).catch(() => {});
     await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`).catch(() => {});
     await pool.query(`ALTER TABLE donation_requests ADD COLUMN IF NOT EXISTS fulfillment_date DATE`).catch(() => {});
     await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
-    await pool.query(`ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
-    await pool.query(`ALTER TABLE notification_logs ALTER COLUMN channel TYPE VARCHAR(100)`).catch(() => {});
+    await pool.query(`ALTER TABLE alerts ADD COLUMN IF NOT EXISTS related_campaign_id INT REFERENCES campaigns(id) ON DELETE SET NULL`).catch(() => {});
+    // await pool.query(`ALTER TABLE notification_logs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`).catch(() => {});
+    // await pool.query(`ALTER TABLE notification_logs ALTER COLUMN channel TYPE VARCHAR(100)`).catch(() => {});
 };
 
 const ensurePasswordResetTable = async () => {
@@ -394,178 +426,6 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Forgot password step 1: verify account name + email and send code
-app.post('/api/forgot-password/request-code', async (req, res) => {
-    const rawEmail = req.body?.email;
-    const rawName = req.body?.name;
-    const email = rawEmail?.trim().toLowerCase();
-    const name = rawName?.trim();
-
-    if (!email || !name) {
-        return res.status(400).json({ error: 'Name and email are required' });
-    }
-
-    try {
-        const userResult = await pool.query(
-            `SELECT id, name, email
-             FROM users
-             WHERE email = $1 AND LOWER(name) = LOWER($2)
-             LIMIT 1`,
-            [email, name]
-        );
-
-        const user = userResult.rows[0];
-        if (!user) {
-            return res.status(404).json({ error: 'Account name and email do not match' });
-        }
-
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        const codeHash = await bcrypt.hash(code, 10);
-
-        await pool.query(
-            'UPDATE password_reset_codes SET consumed = true WHERE email = $1 AND consumed = false',
-            [email]
-        );
-
-        await pool.query(
-            `INSERT INTO password_reset_codes (user_id, email, code_hash, expires_at)
-             VALUES ($1, $2, $3, NOW() + INTERVAL '10 minutes')`,
-            [user.id, email, codeHash]
-        );
-
-        try {
-            await sendResetCodeEmail(email, user.name || name, code);
-        } catch (mailErr) {
-            await pool.query('UPDATE password_reset_codes SET consumed = true WHERE email = $1 AND consumed = false', [email]);
-
-            if (mailErr.message === 'SMTP_NOT_CONFIGURED') {
-                return res.status(503).json({
-                    error: 'Email service is not configured. Please contact support.',
-                });
-            }
-
-            console.error('Send reset email error:', mailErr);
-            return res.status(500).json({ error: 'Unable to send verification code right now' });
-        }
-
-        return res.json({ message: 'Verification code sent to your email' });
-    } catch (err) {
-        console.error('Request reset code error:', err);
-        return res.status(500).json({ error: 'Unable to send verification code right now' });
-    }
-});
-
-// Forgot password step 2: verify code and issue short-lived reset token
-app.post('/api/forgot-password/verify-code', async (req, res) => {
-    const email = req.body?.email?.trim().toLowerCase();
-    const code = req.body?.code?.trim();
-
-    if (!email || !code) {
-        return res.status(400).json({ error: 'Email and verification code are required' });
-    }
-
-    try {
-        const codeResult = await pool.query(
-            `SELECT id, user_id, code_hash, expires_at
-             FROM password_reset_codes
-             WHERE email = $1 AND consumed = false
-             ORDER BY created_at DESC
-             LIMIT 1`,
-            [email]
-        );
-
-        const record = codeResult.rows[0];
-        if (!record) {
-            return res.status(400).json({ error: 'No reset request found. Request a new code.' });
-        }
-
-        if (new Date(record.expires_at) < new Date()) {
-            await pool.query('UPDATE password_reset_codes SET consumed = true WHERE id = $1', [record.id]);
-            return res.status(400).json({ error: 'Code expired. Please request a new code.' });
-        }
-
-        const isCodeValid = await bcrypt.compare(code, record.code_hash);
-        if (!isCodeValid) {
-            return res.status(400).json({ error: 'Invalid verification code' });
-        }
-
-        await pool.query(
-            'UPDATE password_reset_codes SET verified = true WHERE id = $1',
-            [record.id]
-        );
-
-        const resetToken = jwt.sign(
-            { userId: record.user_id, resetId: record.id, purpose: 'password_reset' },
-            JWT_SECRET,
-            { expiresIn: '15m' }
-        );
-
-        return res.json({
-            message: 'Code verified successfully',
-            reset_token: resetToken,
-        });
-    } catch (err) {
-        console.error('Verify reset code error:', err);
-        return res.status(500).json({ error: 'Unable to verify code right now' });
-    }
-});
-
-// Forgot password step 3: reset password using verified reset token
-app.post('/api/forgot-password/reset', async (req, res) => {
-    const token = req.body?.reset_token;
-    const newPassword = req.body?.new_password;
-
-    if (!token || !newPassword) {
-        return res.status(400).json({ error: 'Reset token and new password are required' });
-    }
-
-    if (newPassword.length < 8) {
-        return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    }
-
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        if (decoded.purpose !== 'password_reset') {
-            return res.status(401).json({ error: 'Invalid reset token' });
-        }
-
-        const resetRecord = await pool.query(
-            `SELECT id, user_id, verified, consumed, expires_at
-             FROM password_reset_codes
-             WHERE id = $1`,
-            [decoded.resetId]
-        );
-
-        const record = resetRecord.rows[0];
-        if (!record || record.user_id !== decoded.userId) {
-            return res.status(401).json({ error: 'Invalid reset session' });
-        }
-
-        if (record.consumed || !record.verified || new Date(record.expires_at) < new Date()) {
-            return res.status(400).json({ error: 'Reset session expired. Request a new code.' });
-        }
-
-        const passwordHash = await bcrypt.hash(newPassword, 10);
-
-        await pool.query('UPDATE users SET password = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [passwordHash, decoded.userId]);
-        await pool.query('UPDATE password_reset_codes SET consumed = true WHERE id = $1', [record.id]);
-
-        return res.json({ message: 'Password changed successfully' });
-    } catch (err) {
-        if (err?.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Reset session expired. Request a new code.' });
-        }
-
-        if (err?.name === 'JsonWebTokenError') {
-            return res.status(401).json({ error: 'Invalid reset token' });
-        }
-
-        console.error('Reset password error:', err);
-        return res.status(500).json({ error: 'Unable to reset password right now' });
-    }
-});
-
 // Protected route - Get current user info
 app.get('/api/profile', verifyToken, async (req, res) => {
     try {
@@ -605,7 +465,8 @@ app.use('/api/admin', adminPanelRouter);
 app.use('/api', announcementsRouter);
 app.use('/api', chatRouter);
 app.use('/api', hospitalsRouter);
-app.use('/api/chatbot', chatbotRouter);
+app.use('/api', chatbotRouter);
+app.use('/api', campaignsRouter);
 
 // Centralized error handler (must be after all routes)
 app.use(errorHandler);
@@ -614,9 +475,13 @@ const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
+        console.log('Starting server initialization...');
         await ensureSchema();
+        console.log('Schema verified');
         await ensurePasswordResetTable();
+        console.log('Password reset table verified');
         await ensureAdminUser();
+        console.log('Admin user verified');
         app.listen(PORT, () => {
             console.log(`Server started on http://localhost:${PORT}`);
         });

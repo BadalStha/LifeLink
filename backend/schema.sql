@@ -71,6 +71,9 @@ CREATE TABLE donation_requests (
     urgency VARCHAR(20) DEFAULT 'medium', -- 'low', 'medium', 'high', 'critical'
     reason TEXT,
     location VARCHAR(255),
+    patient_name VARCHAR(255),
+    patient_email VARCHAR(255),
+    patient_phone VARCHAR(20),
     status VARCHAR(50) DEFAULT 'open', -- 'open', 'fulfilled', 'cancelled'
     fulfillment_date DATE, -- when fulfilled
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -90,9 +93,11 @@ CREATE TABLE alerts (
     organ_type_target VARCHAR(50), -- if targeting specific organ
     is_read BOOLEAN DEFAULT false,
     related_request_id INT, -- link to request if applicable
+    related_campaign_id INT, -- link to campaign if applicable
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL,
-    FOREIGN KEY(related_request_id) REFERENCES donation_requests(id) ON DELETE SET NULL
+    FOREIGN KEY(related_request_id) REFERENCES donation_requests(id) ON DELETE SET NULL,
+    FOREIGN KEY(related_campaign_id) REFERENCES campaigns(id) ON DELETE SET NULL
 );
 
 -- 6. ANNOUNCEMENTS TABLE
@@ -136,6 +141,22 @@ CREATE TABLE hospitals (
     FOREIGN KEY(admin_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 9. CAMPAIGNS TABLE
+CREATE TABLE campaigns (
+    id SERIAL PRIMARY KEY,
+    hospital_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    blood_type VARCHAR(10), -- 'All Types' or specific like 'A+'
+    target_units INT,
+    start_date DATE,
+    end_date DATE,
+    status VARCHAR(50) DEFAULT 'active', -- 'active', 'completed', 'cancelled'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(hospital_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Create indices for better query performance
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_role ON users(role);
@@ -152,6 +173,8 @@ CREATE INDEX idx_announcements_created_by ON announcements(created_by);
 CREATE INDEX idx_messages_sender ON messages(sender_id);
 CREATE INDEX idx_messages_recipient ON messages(recipient_id);
 CREATE INDEX idx_hospitals_admin ON hospitals(admin_id);
+CREATE INDEX idx_campaigns_hospital ON campaigns(hospital_id);
+CREATE INDEX idx_campaigns_status ON campaigns(status);
 
 -- Display confirmation
 SELECT 'LifeLink Database Schema Created Successfully!' as status;

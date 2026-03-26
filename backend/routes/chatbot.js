@@ -49,6 +49,29 @@ If a user asks about specific medical advice, emphasize that you are an AI and t
 
         res.json({ reply: response.text });
     } catch (error) {
+        const providerMessage = error?.message || '';
+        const isLeakedKeyError = error?.status === 403 && providerMessage.toLowerCase().includes('reported as leaked');
+        const isAuthError = error?.status === 401 || error?.status === 403;
+        const isRateLimitError = error?.status === 429;
+
+        if (isLeakedKeyError) {
+            return res.status(503).json({
+                error: 'AI Chatbot is unavailable because the Gemini API key was revoked (reported as leaked). Please replace GEMINI_API_KEY in backend/.env and restart the server.'
+            });
+        }
+
+        if (isAuthError) {
+            return res.status(503).json({
+                error: 'AI Chatbot authentication failed. Please verify GEMINI_API_KEY in backend/.env.'
+            });
+        }
+
+        if (isRateLimitError) {
+            return res.status(429).json({
+                error: 'AI service is currently rate-limited. Please try again shortly.'
+            });
+        }
+
         console.error('Chatbot API Error:', error);
         res.status(500).json({ error: 'Failed to generate a response from the AI.' });
     }

@@ -13,7 +13,10 @@ router.post('/requests', verifyToken, async (req, res) => {
         units_needed,
         urgency,
         reason,
-        location
+        location,
+        patient_name,
+        patient_email,
+        patient_phone
     } = req.body;
 
     if (!request_type || (request_type !== 'blood' && request_type !== 'organ')) {
@@ -36,8 +39,8 @@ router.post('/requests', verifyToken, async (req, res) => {
     try {
         const result = await pool.query(
             `INSERT INTO donation_requests
-             (requester_id, request_type, blood_type, organ_type, units_needed, urgency, reason, location, status)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'open')
+             (requester_id, request_type, blood_type, organ_type, units_needed, urgency, reason, location, status, patient_name, patient_email, patient_phone)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'open', $9, $10, $11)
              RETURNING *`,
             [
                 req.userId,
@@ -47,7 +50,10 @@ router.post('/requests', verifyToken, async (req, res) => {
                 units_needed || null,
                 urgency || 'medium',
                 reason || null,
-                location || null
+                location || null,
+                patient_name || null,
+                patient_email || null,
+                patient_phone || null
             ]
         );
 

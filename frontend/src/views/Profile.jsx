@@ -538,7 +538,7 @@ export default function Profile() {
                       <div className="flex justify-between items-start gap-3 flex-wrap mb-2">
                         <div>
                           <p className="font-black text-slate-900 text-sm capitalize">
-                            {req.request_type} — {req.blood_type || req.organ_type || 'Donation'}
+                            {req.patient_name || 'My Request'} — {req.blood_type || req.organ_type || 'Donation'}
                           </p>
                           <p className="text-xs text-slate-400 mt-0.5">
                             {formatDate(req.created_at)} · {req.location}

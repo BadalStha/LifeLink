@@ -19,9 +19,8 @@ import About from './views/About';
 import FindDonors from './views/FindDonors';
 import DonorProfile from './views/DonorProfile';
 import DonationPreferences from './views/DonationPreferences';
-import ForgotPassword from './views/ForgotPassword';
-import ResetPassword from './views/ResetPassword';
 import HelpRequestDetail from './views/HelpRequestDetail';
+import CampaignDetails from './views/CampaignDetails';
 import ChatbotWidget from './components/ChatbotWidget';
 import { ChatProvider } from './context/ChatContext';
 import GlobalChat from './components/GlobalChat';
@@ -30,6 +29,10 @@ import ChatView from './views/ChatView';
 export default function App() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isHospitalRoute = location.pathname.startsWith('/hospital');
+  const isHomePage = location.pathname === '/';
+
+  const shouldHideChat = isAdminRoute || isHospitalRoute;
 
   return (
     <ChatProvider>
@@ -44,11 +47,10 @@ export default function App() {
         />
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Auth />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/register" element={<Register />} />
         <Route path="/request-help" element={<RequestHelp />} />
         <Route path="/request/:id" element={<HelpRequestDetail />} />
+        <Route path="/campaign/:id" element={<CampaignDetails />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/about" element={<About />} />
         <Route 
@@ -102,8 +104,8 @@ export default function App() {
         <Route path="/hospital" element={<Hospital />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
-      {!isAdminRoute && <ChatbotWidget />}
-      {!isAdminRoute && <GlobalChat />}
+      {!shouldHideChat && <ChatbotWidget />}
+      {!shouldHideChat && <GlobalChat />}
     </ChatProvider>
   );
 }

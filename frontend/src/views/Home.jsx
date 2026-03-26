@@ -169,6 +169,10 @@ export default function Home() {
       navigate(`/request/${item.reference_id}`);
       return;
     }
+    if (item.type === 'campaign' && item.reference_id) {
+      navigate(`/campaign/${item.reference_id}`);
+      return;
+    }
     if (item.type === 'alert') navigate('/request-help');
   };
 

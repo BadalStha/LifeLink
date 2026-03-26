@@ -22,6 +22,7 @@ export default function ChatView() {
   const [isSending, setIsSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeConvName, setActiveConvName] = useState('');
+  const [activeConvPicture, setActiveConvPicture] = useState(null);
 
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
@@ -40,12 +41,17 @@ export default function ChatView() {
       loadMessages(activeUserId);
       if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(() => loadMessages(activeUserId, false), 5000);
-      resolveConversationName(activeUserId);
     }
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [activeUserId]);
+
+  useEffect(() => {
+    if (activeUserId) {
+      resolveConversationName(activeUserId);
+    }
+  }, [activeUserId, conversations]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,12 +90,15 @@ export default function ChatView() {
     const conv = conversations.find(c => String(c.partner_id) === String(userId));
     if (conv) {
       setActiveConvName(conv.partner_name);
+      setActiveConvPicture(conv.partner_profile_picture);
     } else {
       try {
         const data = await usersAPI.getById(userId);
         setActiveConvName(data.user?.name || 'User');
+        setActiveConvPicture(data.user?.profile_picture || null);
       } catch {
         setActiveConvName('User');
+        setActiveConvPicture(null);
       }
     }
   };
@@ -212,8 +221,18 @@ export default function ChatView() {
                 <button onClick={() => setActiveUserId(null)} className="md:hidden p-2 -ml-2 text-slate-400">
                   <ArrowLeft size={20} />
                 </button>
-                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                  <User size={20} className="text-slate-400" />
+                <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center overflow-hidden">
+                  {activeConvPicture ? (
+                    <img
+                      src={`${API_BASE_URL}${activeConvPicture}`}
+                      className="w-full h-full object-cover shadow-sm"
+                      alt=""
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-red-100 text-red-600 flex items-center justify-center font-bold text-xs">
+                      {getInitials(activeConvName)}
+                    </div>
+                  )}
                 </div>
                 <div>
                   <h2 className="font-bold text-slate-900 leading-none">{activeConvName}</h2>

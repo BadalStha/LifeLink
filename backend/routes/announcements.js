@@ -49,12 +49,34 @@ router.post('/announcements', verifyToken, async (req, res) => {
 
 // DELETE /api/announcements/:id - Delete announcement (admin only)
 router.delete('/announcements/:id', verifyToken, async (req, res) => {
-    if (req.role !== 'admin') {
-        return res.status(403).json({ error: 'Only admins can delete announcements' });
-    }
     try {
-        await pool.query('DELETE FROM announcements WHERE id = $1', [req.params.id]);
-        res.json({ message: 'Announcement deleted' });
+        const announcementId = parseInt(req.params.id, 10);
+        if (Number.isNaN(announcementId)) {
+            return res.status(400).json({ error: 'Invalid announcement id' });
+        }
+
+        if (req.role === 'admin') {
+            const result = await pool.query('DELETE FROM announcements WHERE id = $1 RETURNING id', [announcementId]);
+            if (!result.rows[0]) {
+                return res.status(404).json({ error: 'Announcement not found' });
+            }
+            return res.json({ message: 'Announcement deleted' });
+        }
+
+        if (req.role === 'hospital') {
+            const result = await pool.query(
+                'DELETE FROM announcements WHERE id = $1 AND created_by = $2 RETURNING id',
+                [announcementId, req.userId]
+            );
+
+            if (!result.rows[0]) {
+                return res.status(404).json({ error: 'Announcement not found or not owned by this hospital' });
+            }
+
+            return res.json({ message: 'Announcement deleted' });
+        }
+
+        return res.status(403).json({ error: 'Only admins and hospitals can delete announcements' });
     } catch (err) {
         console.error('Delete announcement error:', err);
         res.status(500).json({ error: 'Server error' });

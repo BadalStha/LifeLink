@@ -155,8 +155,9 @@ export default function GlobalChat() {
   // Don't render bubble/window unless user is authenticated
   if (!localStorage.getItem('authToken')) return null;
 
-  // Render floating bubble if chat is closed
+  // Render floating bubble if chat is closed (hidden on home page)
   if (!isOpen) {
+    if (location.pathname === '/') return null;
     return (
       <button
         onClick={() => openChat(null)}

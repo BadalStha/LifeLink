@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   CheckCircle,
   XCircle,
+  MessageCircle,
   Loader2,
 } from 'lucide-react';
 import { requestsAPI } from '../services/api';
@@ -216,33 +217,33 @@ export default function HelpRequestDetail() {
               <div className="space-y-3">
                 <Detail
                   icon={<User size={16} className="text-slate-500" />}
-                  label="Name"
-                  value={request.requester_name || '—'}
+                  label="Patient Name"
+                  value={request.patient_name || request.requester_name || '—'}
                 />
-                {request.requester_email && (
+                {(request.patient_email || request.requester_email) && (
                   <Detail
                     icon={<Mail size={16} className="text-slate-500" />}
-                    label="Email"
+                    label="Contact Email"
                     value={
                       <a
-                        href={`mailto:${request.requester_email}`}
+                        href={`mailto:${request.patient_email || request.requester_email}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {request.requester_email}
+                        {request.patient_email || request.requester_email}
                       </a>
                     }
                   />
                 )}
-                {request.requester_phone && (
+                {(request.patient_phone || request.requester_phone) && (
                   <Detail
                     icon={<Phone size={16} className="text-slate-500" />}
-                    label="Phone"
+                    label="Contact Phone"
                     value={
                       <a
-                        href={`tel:${request.requester_phone}`}
+                        href={`tel:${request.patient_phone || request.requester_phone}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {request.requester_phone}
+                        {request.patient_phone || request.requester_phone}
                       </a>
                     }
                   />

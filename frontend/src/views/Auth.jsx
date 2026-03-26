@@ -213,15 +213,6 @@ export default function Auth() {
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">
                     Password
                   </label>
-                  {isLogin && (
-                    <button
-                      type="button"
-                      onClick={() => navigate('/forgot-password')}
-                      className="text-xs font-bold text-red-600 hover:underline"
-                    >
-                      Forgot password?
-                    </button>
-                  )}
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={17} />

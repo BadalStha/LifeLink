@@ -5,6 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { requestsAPI } from '../services/api';
 import { PROVINCE_DISTRICTS as provinceData } from '../data/constants';
 
+const inputAutofillClass = 'autofill:!text-slate-800 autofill:shadow-[inset_0_0_0px_1000px_#f8fafc]';
+const inputAutofillWhiteClass = 'autofill:!text-slate-800 autofill:shadow-[inset_0_0_0px_1000px_#ffffff]';
+
 const districtMunicipalityData = {
   Morang: ['Biratnagar Metropolitan City', 'Sundarharaicha Municipality', 'Belbari Municipality', 'Pathari Shanishchare Municipality', 'Rangeli Municipality', 'Letang Municipality', 'Ratuwamai Municipality', 'Sunwarshi Municipality'],
   Kathmandu: ['Kathmandu Metropolitan City', 'Kageshwori Manohara Municipality', 'Gokarneshwor Municipality', 'Tokha Municipality', 'Tarakeshwar Municipality', 'Nagarjun Municipality', 'Budhanilkantha Municipality', 'Kirtipur Municipality'],
@@ -86,6 +89,9 @@ export default function RequestHelp() {
         urgency: formData.urgencyLevel || 'medium',
         reason: formData.additionalInfo || null,
         location: `${formData.municipality}, ${formData.district}`,
+        patient_name: `${formData.firstName} ${formData.middleName ? formData.middleName + ' ' : ''}${formData.lastName}`,
+        patient_email: formData.email || null,
+        patient_phone: formData.mobile || null,
       };
 
       await requestsAPI.create(requestData);
@@ -196,7 +202,7 @@ export default function RequestHelp() {
                     value={formData.firstName}
                     onChange={handleChange}
                     placeholder="Ramesh"
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${inputAutofillClass}`}
                     required
                   />
                 </div>
@@ -208,7 +214,7 @@ export default function RequestHelp() {
                     value={formData.middleName}
                     onChange={handleChange}
                     placeholder="Bahadur"
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${inputAutofillClass}`}
                   />
                 </div>
                 <div>
@@ -219,7 +225,7 @@ export default function RequestHelp() {
                     value={formData.lastName}
                     onChange={handleChange}
                     placeholder="Gurung"
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${inputAutofillClass}`}
                     required
                   />
                 </div>
@@ -238,7 +244,7 @@ export default function RequestHelp() {
                     min="1"
                     max="31"
                     inputMode="numeric"
-                    className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${inputAutofillClass}`}
                     required
                   />
                   
@@ -262,7 +268,7 @@ export default function RequestHelp() {
                     min="1900"
                     max={currentYear}
                     inputMode="numeric"
-                    className="px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    className={`px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-red-500 focus:border-transparent ${inputAutofillClass}`}
                     required
                   />
                 </div>
@@ -317,7 +323,7 @@ export default function RequestHelp() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="ramesh.gurung@example.com"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className={`w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent ${inputAutofillClass}`}
                     />
                   </div>
                 </div>
@@ -333,7 +339,7 @@ export default function RequestHelp() {
                       value={formData.mobile}
                       onChange={handleChange}
                       placeholder="+977-98XXXXXXXX"
-                      className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                      className={`w-full pl-12 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent ${inputAutofillClass}`}
                       required
                     />
                   </div>
@@ -410,7 +416,7 @@ export default function RequestHelp() {
                     placeholder="1-32"
                     min="1"
                     max="32"
-                    className="w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${inputAutofillClass}`}
                     required
                   />
                 </div>
